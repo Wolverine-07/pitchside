@@ -76,6 +76,12 @@ def health() -> dict:
     }
 
 
+@app.get("/api/meta")
+def match_meta(seed: int = 16, storyline: str = "comeback") -> dict:
+    """Clubs, rosters and venue, so viewers can pick a club and player before kick-off."""
+    return simulate(seed, storyline)[0]["data"]
+
+
 @contextlib.asynccontextmanager
 async def broadcast(seed: int, storyline: str, profiles: list[str], langs: list[str]):
     """A Broadcast whose Analyst reads numbers over MCP, from this match only."""
