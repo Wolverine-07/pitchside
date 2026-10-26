@@ -12,14 +12,16 @@ import time
 from collections.abc import AsyncIterator, Iterable
 
 from pitchside import overlays
-from pitchside.agents.pipeline import Batch, Job, build_agents, build_workflow
+from pitchside.agents.pipeline import Batch, Job, build_agents, build_workflow, headline_for
+from pitchside.agents.templates import template_line
 from pitchside.sim.league import Fixture, LeagueState
 from pitchside.stats.state import Evidence, MatchState, Moment
 from pitchside.tools import StatsTools
 
 WORKERS = 3  # moments handled in parallel during live play
-BATCH_EVERY_MS = 20_000  # the Director sees new candidates every 20 s of match time
-URGENT = {"goal", "card", "big_chance", "half_time_recap", "full_time_recap"}
+BATCH_EVERY_MS = 10_000  # the Director sees new candidates every 10 s of match time
+URGENT = {"goal", "card", "big_chance", "great_save", "half_time_recap", "full_time_recap"}
+FAST = {"goal", "card", "big_chance", "great_save"}  # shown instantly from templates
 BROADCAST_DELAY_MS = 4_000
 
 
@@ -60,6 +62,23 @@ class Broadcast:
             return dict(self.league.names)
         meta = self.state.meta
         return {meta[s]["code"]: meta[s]["name"] for s in ("home", "away")}
+
+    def _flash(self, m: Moment, match_id: str) -> dict:
+        """Fast path: a verified template caption on screen at once; the agents' caption replaces it."""
+        card = overlays.insight_card(
+            m,
+            match_id,
+            headline_for(m, self.clubs, self.state.names),
+            template_line(m, self.state.names, self.clubs),
+            "en",
+            "flash:en",
+            start_t_ms=m.t_ms,
+            agents=["template"],
+            verified=True,
+            fallback=True,
+        )
+        card["provenance"]["fast"] = True
+        return card
 
     def _job(self, m: Moment) -> Job:
         return Job(
@@ -208,6 +227,12 @@ class Broadcast:
 
             for m in moments:
                 self.pending.append(self._job(m))
+                if m.type in FAST or (m.significance >= 60 and not m.type.endswith("_recap")):
+                    yield {
+                        "kind": "overlay",
+                        "minute": m.minute,
+                        "overlay": self._flash(m, ev["match_id"]),
+                    }
             urgent = any(j.moment.type in URGENT for j in self.pending)
             due_now = ev["t_ms"] - self.last_batch_ms >= BATCH_EVERY_MS or ev["type"] == "match_end"
             if self.pending and (urgent or due_now):

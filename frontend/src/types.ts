@@ -27,6 +27,10 @@ export type Snapshot = {
   chaos_5min: number;
   xg: Record<string, number>;
   win_probability_pct?: Record<string, number>;
+  teams?: Record<
+    string,
+    { shots: number; on_target: number; pass_accuracy_pct: number; corners: number; fouls: number; tackles_won: number; yellow_cards: number; red_cards: number }
+  >;
 };
 
 export type Evidence = {

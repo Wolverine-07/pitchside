@@ -6,7 +6,9 @@ import {
   ProducerQueue,
   AgentTrace,
   CommentaryFeed,
-  ControlGauge,
+  Crest,
+  FullTime,
+  LiveEvents,
   GoalBanner,
   isRecap,
   RecapCard,
@@ -22,6 +24,7 @@ import {
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
 import { type Settings, useMatch } from "./useMatch";
+import { setVoice as setVoiceOutput, speak, stop as stopVoice } from "./voice";
 
 const MODES: { id: Mode; label: string }[] = [
   { id: "casual", label: "Casual" },
@@ -71,7 +74,7 @@ function Logo() {
 }
 
 export default function App() {
-  const { view, start } = useMatch();
+  const { view, start, leave } = useMatch();
   const [meta, setMeta] = useState<Meta | null>(null);
   const [settings, setSettings] = useState<Settings>({
     seed: 16,
@@ -127,7 +130,14 @@ export default function App() {
   const m = view.meta ?? meta;
   const profile = mode === "club" ? `club:${settings.club}` : mode === "player" ? `player:${settings.player}` : mode;
   const key = `${profile}:${lang}`;
-  const myCards = useMemo(() => view.cards.filter((c) => c.profile_key === key), [view.cards, key]);
+  const myCards = useMemo(() => {
+    const mine = view.cards.filter((c) => c.profile_key === key);
+    if (lang !== "en") return mine;
+    // Fast-path captions fill the gap until the agents' caption for the same moment lands.
+    const done = new Set(mine.map((c) => c.moment_id));
+    const flashes = view.cards.filter((c) => c.profile_key === "flash:en" && !done.has(c.moment_id));
+    return [...mine, ...flashes].sort((a, b) => a.anchor_t_ms - b.anchor_t_ms || (a.provenance.fallback ? -1 : 1));
+  }, [view.cards, key, lang]);
   // In studio mode only approved captions air, with the producer's edits applied.
   const airable = studio
     ? myCards
@@ -139,6 +149,13 @@ export default function App() {
     : myCards;
   const latest = airable.filter((c) => !isRecap(c)).at(-1);
   const awaiting = myCards.filter((c) => !decisions[c.overlay_id]).length;
+  // A new language means new voices: stop the old one mid-sentence.
+  useEffect(() => stopVoice(), [lang]);
+  // Voice takes effect at once: on reads the caption on screen now, off stops speaking.
+  useEffect(() => {
+    setVoiceOutput(voice);
+    if (voice && latest) speak(`${latest.content.headline}. ${latest.content.body}`, lang, true);
+  }, [voice]); // eslint-disable-line react-hooks/exhaustive-deps
   const latestRecap = airable.filter(isRecap).at(-1);
   // Each goal replays its build-up once the banner has gone; feed buttons replay any goal again.
   const [replayId, setReplayId] = useState<number | null>(null);
@@ -193,6 +210,19 @@ export default function App() {
               </svg>
               Voice
             </button>
+            <button
+              onClick={() => {
+                if (view.status !== "live" || confirm("Leave this match? It will stop for you.")) {
+                  stopVoice();
+                  setDecisions({});
+                  leave();
+                }
+              }}
+              className="rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:border-bad hover:text-white"
+              title="Leave this match and pick another"
+            >
+              Leave
+            </button>
             <div className="flex items-center gap-2 border-l border-line pl-4 text-[12px]">
               {view.status === "live" ? (
                 <span className="flex items-center gap-1.5 font-semibold text-bad">
@@ -225,17 +255,21 @@ export default function App() {
                 focus={mode === "player" ? settings.player : undefined}
                 shots={mode === "analyst" ? view.shots : []}
                 replay={replay}
+                carrier={view.carrier}
               >
                 <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
                 {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
                 <GoalBanner goal={view.lastGoal} meta={m} />
-                <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />
+                {view.status !== "done" && <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />}
+                {view.status === "done" && m && (
+                  <FullTime meta={m} snapshot={view.snapshot} league={view.league} recap={latestRecap} onLeave={leave} />
+                )}
               </Pitch>
             </div>
-            <div className="grid h-[164px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
-              <Momentum data={view.momentum} meta={m} goals={view.goals} />
+            <div className="grid h-[200px] shrink-0 grid-cols-[minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,1.2fr)] gap-3">
+              <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} />
               <MatchStats snapshot={view.snapshot} meta={m} />
-              <ControlGauge value={view.snapshot?.chaos_5min} />
+              <LiveEvents feed={view.feed} meta={m} />
             </div>
           </section>
 
@@ -369,9 +403,7 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
         <div className="rounded-2xl border border-line bg-panel p-6 shadow-2xl">
           {meta && (
             <div className="mb-6 flex items-center justify-center gap-4 border-b border-line pb-5">
-              <span className="grid h-11 w-11 place-items-center rounded-full text-xs font-extrabold" style={{ background: meta.home.colors[0] }}>
-                {meta.home.code}
-              </span>
+              <Crest code={meta.home.code} colors={meta.home.colors} size={44} />
               <div className="text-center">
                 <div className="font-semibold">
                   {meta.home.name} <span className="text-muted">v</span> {meta.away.name}
@@ -385,9 +417,7 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
                   </div>
                 )}
               </div>
-              <span className="grid h-11 w-11 place-items-center rounded-full text-xs font-extrabold" style={{ background: meta.away.colors[0] }}>
-                {meta.away.code}
-              </span>
+              <Crest code={meta.away.code} colors={meta.away.colors} size={44} />
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">

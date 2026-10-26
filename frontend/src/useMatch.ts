@@ -37,6 +37,7 @@ export type MatchView = {
   matchKey: string | null;
   recent: BallPoint[];
   replays: Replay[];
+  carrier: string | null;
 };
 
 const EMPTY: MatchView = {
@@ -62,10 +63,14 @@ const EMPTY: MatchView = {
   matchKey: null,
   recent: [],
   replays: [],
+  carrier: null,
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
-const FEED = new Set(["goal", "shot", "card", "substitution", "corner", "period_start", "period_end", "match_end"]);
+const FEED = new Set([
+  "goal", "shot", "card", "substitution", "corner", "foul", "dribble", "tackle", "interception",
+  "period_start", "period_end", "match_end",
+]);
 
 /** Events use the acting team's attacking direction; draw everything with the home side attacking right. */
 function toPitch(meta: Meta | null, team: string | undefined, x: number, y: number) {
@@ -102,6 +107,7 @@ export function useMatch() {
       ws.current = sock;
 
       sock.onmessage = (msg) => {
+        if (ws.current !== sock) return; // a match we have already left
         const item = JSON.parse(msg.data);
         setView((v) => reduce(v, item));
       };
@@ -111,7 +117,12 @@ export function useMatch() {
     [stop],
   );
 
-  return { view, start, stop };
+  const leave = useCallback(() => {
+    stop();
+    setView(EMPTY);
+  }, [stop]);
+
+  return { view, start, stop, leave };
 }
 
 function reduce(v: MatchView, item: any): MatchView {
@@ -134,7 +145,15 @@ function reduce(v: MatchView, item: any): MatchView {
         // The build-up for replays: where each touch started, newest last.
         next.recent = [...v.recent.slice(-14), { ...start, team: e.team, type: e.type }];
       }
-      if (FEED.has(e.type)) next.feed = [e, ...v.feed].slice(0, 30);
+      // Only the interesting duels make the live feed: won tackles and completed dribbles.
+      const quiet = (e.type === "tackle" && e.outcome !== "won") || (e.type === "dribble" && e.outcome !== "complete");
+      if (FEED.has(e.type) && !quiet) next.feed = [e, ...v.feed].slice(0, 40);
+      if (ON_BALL.has(e.type)) {
+        const receiver = (e as any).receiver as string | undefined;
+        next.carrier = e.type === "pass" && e.outcome === "complete" && receiver ? receiver : (e.player ?? null);
+      } else if (e.type === "possession_change" || e.type === "interception" || (e.type === "tackle" && e.outcome === "won")) {
+        next.carrier = e.player ?? next.carrier;
+      }
       if (e.type === "shot" && e.x !== undefined) {
         const p = toPitch(v.meta, e.team, e.x, e.y!);
         next.shots = [...v.shots, { ...p, team: e.team!, outcome: e.outcome!, xg: (e as any).xg, minute: e.minute, player: e.player! }];
@@ -187,7 +206,7 @@ function reduce(v: MatchView, item: any): MatchView {
         pending: v.pending.filter((p) => p.id !== item.trace.moment_id && p.minute > item.trace.minute),
       };
     case "done":
-      return { ...v, status: "done" };
+      return { ...v, status: "done", pending: [] };
     default:
       return v;
   }

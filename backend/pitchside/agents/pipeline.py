@@ -139,7 +139,7 @@ class DirectorExec(Executor):
         must = [j for j in batch.jobs if j.moment.type in ALWAYS_AIR]
         picked: list[Job] = []
         reply = None
-        if len(batch.jobs) > len(must):
+        if len(batch.jobs) - len(must) > 1:
             reply = await ask(
                 self.agent,
                 json.dumps(
@@ -166,6 +166,8 @@ class DirectorExec(Executor):
             )
             if reply is None and len(batch.jobs) == len(must):
                 note, status = "always airs", "rule"
+            elif len(batch.jobs) - len(must) <= 1:
+                note, status = "one candidate: rule decides, no model call", "rule"
         for j in must:
             if j not in picked:
                 picked.insert(0, j)
@@ -278,7 +280,7 @@ class TemplateExec(Executor):
     async def fill(self, job: Job, ctx: WorkflowContext[Job]) -> None:
         t0 = time.perf_counter()
         line = template_line(job.moment, job.names, job.clubs)
-        job.caption = {"headline": headline_for(job.moment, job.clubs), "line": line}
+        job.caption = {"headline": headline_for(job.moment, job.clubs, job.names), "line": line}
         job.fallback = True
         job.log("template", t0, "ok", "verified template line")
         await ctx.send_message(job)
@@ -362,20 +364,22 @@ class LinguistExec(Executor):
         t0 = time.perf_counter()
         job.translations = {"en": dict(job.variants)}
         others = [lang for lang in job.langs if lang != "en"]
-        reply = (
-            await ask(
-                self.agent,
-                json.dumps(
-                    {
-                        "languages": {lang: prompts.LANGUAGES[lang] for lang in others},
-                        "captions": job.variants,
-                    }
-                ),
+        # One call per language, in parallel: each viewer waits for one translation, not all of them.
+        replies = await asyncio.gather(
+            *(
+                ask(
+                    self.agent,
+                    json.dumps(
+                        {"languages": {lang: prompts.LANGUAGES[lang]}, "captions": job.variants}
+                    ),
+                )
+                for lang in others
             )
-            if others
-            else None
         )
-        out = (reply or {}).get("translations", {})
+        out: dict = {}
+        for r in replies:
+            out.update((r or {}).get("translations", {}))
+        reply = any(replies)
         kept = 0
         for lang in others:
             job.translations[lang] = {}
@@ -401,7 +405,8 @@ class LinguistExec(Executor):
         await ctx.yield_output(job)
 
 
-def headline_for(m: Moment, clubs: dict[str, str]) -> str:
+def headline_for(m: Moment, clubs: dict[str, str], names: dict[str, str] | None = None) -> str:
+    player_name = (names or {}).get(m.player or "", "").split(" ")[-1]
     team = clubs.get(m.team or "", "")
     return {
         "goal": f"Goal, {team}",
@@ -413,6 +418,8 @@ def headline_for(m: Moment, clubs: dict[str, str]) -> str:
         "player_speed": "Top speed",
         "milestone": "Milestone",
         "around_the_league": "Around the league",
+        "player_spotlight": f"Spotlight on {player_name}",
+        "great_save": "What a save",
         "half_time_recap": "Half-time",
         "full_time_recap": "Full-time",
     }.get(m.type, m.type.replace("_", " ").title())

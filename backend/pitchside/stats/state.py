@@ -117,6 +117,7 @@ class MatchState:
                         Evidence("xg", round(ev["xg"], 2), team, pid),
                         Evidence("shot_speed_kmh", ev["shot_speed_kmh"], team, pid),
                         Evidence("outcome", ev["outcome"], team, pid),
+                        *self._assist(ev, team),
                     ],
                     cooldown_s=30,
                 )
@@ -135,6 +136,7 @@ class MatchState:
                     Evidence("score", self.score_line()),
                     Evidence("xg", round(shot["xg"], 2), team, pid),
                     Evidence("shot_speed_kmh", shot["shot_speed_kmh"], team, pid),
+                    *self._assist(shot, team),
                 ],
                 cooldown_s=0,
             )
@@ -183,9 +185,12 @@ class MatchState:
                         team=self.team_of(p),
                     )
 
+        if kind == "possession_change" and ev.get("how") == "save":
+            new += self._check_save(ev)
         if kind in ON_BALL | REGAIN | {"possession_change"}:
             new += self._check_swing(ev)
             new += self._check_chaos(ev)
+            new += self._check_spotlight(ev)
         self.moments += new
         return new
 
@@ -286,6 +291,35 @@ class MatchState:
         avg_s = (sum(spells) / len(spells) / 1000) if spells else 30.0
         return chaos_index(turnovers / minutes, avg_s, duels / minutes)
 
+    def match_stats(self, team: str) -> dict:
+        """The broadcast stats box for one team, whole match."""
+        c: Counter = Counter()
+        passes = done = 0
+        for e in self.events:
+            if e.get("team") != team:
+                continue
+            t = e["type"]
+            if t == "pass":
+                passes += 1
+                done += e["outcome"] == "complete"
+            elif t == "shot":
+                c["shots"] += 1
+                c["on_target"] += e["outcome"] in ("goal", "saved")
+            elif t in ("corner", "foul", "tackle", "interception", "dribble"):
+                c[t + "s"] += t != "tackle" or e.get("outcome") == "won"
+            elif t == "card":
+                c["yellow_cards" if e["card"] == "yellow" else "red_cards"] += 1
+        return {
+            "shots": c["shots"],
+            "on_target": c["on_target"],
+            "pass_accuracy_pct": round(100 * done / passes) if passes else 0,
+            "corners": c["corners"],
+            "fouls": c["fouls"],
+            "tackles_won": c["tackles"],
+            "yellow_cards": c["yellow_cards"],
+            "red_cards": c["red_cards"],
+        }
+
     def win_probability(self) -> dict[str, int]:
         """Live chance of each result, in percent, keyed by club code and 'draw'."""
         a, b = self.teams
@@ -339,6 +373,7 @@ class MatchState:
             "chaos_5min": self.chaos(300),
             "xg": {t: self.team_metrics(t)["xg"] for t in self.teams},
             "win_probability_pct": self.win_probability(),
+            "teams": {t: self.match_stats(t) for t in self.teams},
         }
 
     def other(self, team: str) -> str:
@@ -405,6 +440,82 @@ class MatchState:
                 evidence=evidence,
             )
         ]
+
+    def _assist(self, shot: dict, team: str | None) -> list[Evidence]:
+        """Who set the chance up, when the shot came straight from a pass."""
+        a = shot.get("assist_player")
+        return [Evidence("set_up_by", self.name(a), team, a)] if a else []
+
+    def _check_save(self, ev: dict) -> list[Moment]:
+        """A keeper stopping a good chance is a moment about the keeper."""
+        shot = next((e for e in reversed(self.events) if e["type"] == "shot"), None)
+        if not shot or shot.get("outcome") != "saved" or shot["xg"] < 0.15:
+            return []
+        gk = ev["player"]
+        return self._moment(
+            "great_save",
+            ev,
+            50 + round(shot["xg"] * 40),
+            f"Save by {self.name(gk)}",
+            [
+                Evidence("xg_saved", round(shot["xg"], 2), shot["team"], shot["player"]),
+                Evidence("shot_speed_kmh", shot["shot_speed_kmh"], shot["team"], shot["player"]),
+            ],
+            cooldown_s=60,
+            player=gk,
+            team=ev["team"],
+            key=gk,
+        )
+
+    def _check_spotlight(self, ev: dict) -> list[Moment]:
+        """Every few minutes: the player who has done most over the last ten."""
+        if (
+            self.t_ms < 600_000
+            or self.t_ms - self._cooldown.get(("player_spotlight", "spotlight"), -(10**9)) < 400_000
+        ):
+            return []
+        score: Counter = Counter()
+        detail: dict[str, Counter] = defaultdict(Counter)
+        for e in self.window(600):
+            p = e.get("player")
+            if not p:
+                continue
+            t = e["type"]
+            if t == "pass" and e["outcome"] == "complete":
+                score[p] += 0.3
+                detail[p]["passes_completed"] += 1
+                if "key_pass" in e.get("tags", []) or "line_breaking" in e.get("tags", []):
+                    score[p] += 1.5
+                    detail[p]["line_breaking_or_key_passes"] += 1
+            elif t in REGAIN and e.get("outcome", "won") == "won":
+                score[p] += 2
+                detail[p]["ball_recoveries"] += 1
+            elif t == "dribble" and e["outcome"] == "complete":
+                score[p] += 1.5
+                detail[p]["dribbles_completed"] += 1
+            elif t == "shot":
+                score[p] += 2 + 6 * e["xg"]
+                detail[p]["shots"] += 1
+        if not score:
+            return []
+        star, value = score.most_common(1)[0]
+        if value < 9:
+            return []
+        team = self.team_of(star)
+        evidence = [
+            Evidence(k, v, team, star, window_s=600) for k, v in detail[star].most_common(3)
+        ]
+        return self._moment(
+            "player_spotlight",
+            ev,
+            52,
+            f"Spotlight on {self.name(star)}",
+            evidence,
+            cooldown_s=0,
+            player=star,
+            team=team,
+            key="spotlight",
+        )
 
     def _check_press(self, ev: dict) -> list[Moment]:
         team = ev["team"]

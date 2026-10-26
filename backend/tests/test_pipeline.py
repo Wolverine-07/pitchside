@@ -21,6 +21,11 @@ def test_templates_only_run_puts_verified_cards_on_air():
     traces = [i["trace"] for i in items if i["kind"] == "trace"]
     assert cards and traces
     assert all(c["provenance"]["verified"] for c in cards)
+    # Big moments go out instantly from verified templates, before the agents finish.
+    flashes = [c for c in cards if c["profile_key"] == "flash:en"]
+    assert sum(f["content"]["moment_type"] == "goal" for f in flashes) == 3
+    assert all(f["provenance"]["fast"] for f in flashes)
+    cards = [c for c in cards if c["profile_key"] != "flash:en"]
     assert {c["profile_key"] for c in cards} == {
         "casual:en",
         "analyst:en",

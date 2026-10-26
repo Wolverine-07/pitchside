@@ -1,15 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type {
-  Goal,
-  League,
-  Meta,
-  Overlay,
-  PlayerStats,
-  Shot,
-  Snapshot,
-  Trace,
-} from "./types";
+import type { Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 import { pitchPos, type BallPoint, type Replay } from "./useMatch";
+import { speak } from "./voice";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
   meta && code
@@ -38,14 +30,18 @@ export const momentLabel = (t: string) =>
 
 /* ---------- scoreboard ---------- */
 
-function Crest({ code, color }: { code: string; color: string }) {
+/** A shield crest in the club's two colours, with its code. */
+export function Crest({ code, colors, size = 40 }: { code: string; colors: string[]; size?: number }) {
+  const [a, b] = colors;
   return (
-    <span
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tracking-wide text-white ring-2 ring-white/10"
-      style={{ background: color }}
-    >
-      {code}
-    </span>
+    <svg viewBox="0 0 40 46" width={size} height={size * 1.15} className="shrink-0 drop-shadow-md">
+      <path d="M20 1 L38 6 V22 C38 33 30 40 20 45 C10 40 2 33 2 22 V6 Z" fill={a} stroke="rgba(255,255,255,.85)" strokeWidth="1.5" />
+      <path d="M20 1 L38 6 V22 C38 33 30 40 20 45 Z" fill="black" opacity="0.12" />
+      <path d="M6 9 H34" stroke={b} strokeWidth="2.2" opacity="0.9" />
+      <text x="20" y="29" textAnchor="middle" fontSize="11" fontWeight="800" fill="white" style={{ letterSpacing: "0.5px" }}>
+        {code}
+      </text>
+    </svg>
   );
 }
 
@@ -106,7 +102,7 @@ export function Scoreboard({
   return (
     <div className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-xl border border-line bg-panel px-5">
       <div className="flex min-w-0 items-center gap-3">
-        <Crest code={meta.home.code} color={meta.home.colors[0]} />
+        <Crest code={meta.home.code} colors={meta.home.colors} />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold">
             {meta.home.name}
@@ -145,7 +141,7 @@ export function Scoreboard({
             align="right"
           />
         </div>
-        <Crest code={meta.away.code} color={meta.away.colors[0]} />
+        <Crest code={meta.away.code} colors={meta.away.colors} />
       </div>
     </div>
   );
@@ -178,17 +174,17 @@ function Players({
   onPitch,
   ball,
   focus,
+  carrier,
 }: {
   meta: Meta;
   onPitch: string[];
   ball?: BallPoint;
   focus?: string;
+  carrier?: string | null;
 }) {
   const bx = ball?.x ?? 52.5;
   const by = ball?.y ?? 34;
-  const players = [...meta.home.players, ...meta.away.players].filter((p) =>
-    onPitch.includes(p.id),
-  );
+  const players = [...meta.home.players, ...meta.away.players].filter((p) => onPitch.includes(p.id));
   return (
     <g>
       {players.map((p) => {
@@ -199,31 +195,27 @@ function Players({
         let x = Math.min(91, Math.max(2, sx + (own.x - 52.5) * shift));
         let y = Math.min(66, Math.max(2, sy + (own.y - 34) * 0.25));
         if (!home) [x, y] = [105 - x, 68 - y];
-        const color = home ? meta.home.colors[0] : meta.away.colors[0];
+        const [main, trim] = home ? meta.home.colors : meta.away.colors;
+        const keeper = p.role === "GK";
+        const onBall = p.id === carrier;
+        // The ball carrier stands where the ball is, so the name sits with the action.
+        if (onBall && ball) [x, y] = [ball.x, ball.y];
         return (
-          <g
-            key={p.id}
-            style={{ transition: "transform 800ms cubic-bezier(.2,.7,.3,1)" }}
-            transform={`translate(${x} ${68 - y})`}
-          >
-            {p.id === focus && (
-              <circle r="2.8" fill="none" stroke="#fbbf24" strokeWidth="0.4" />
-            )}
-            <circle
-              r="1.45"
-              fill={color}
-              stroke="rgba(255,255,255,.85)"
-              strokeWidth="0.22"
-            />
-            <text
-              y="0.55"
-              textAnchor="middle"
-              fontSize="1.45"
-              fontWeight="700"
-              fill="white"
-            >
+          <g key={p.id} style={{ transition: "transform 700ms cubic-bezier(.2,.7,.3,1)" }} transform={`translate(${x} ${68 - y})`}>
+            {onBall && <circle r="3.1" fill="white" opacity="0.18" />}
+            {p.id === focus && <circle r="2.9" fill="none" stroke="#fbbf24" strokeWidth="0.45" strokeDasharray="1 0.6" />}
+            <circle r="1.6" fill={keeper ? "#111827" : main} stroke={keeper ? main : trim} strokeWidth="0.42" />
+            <text y="0.58" textAnchor="middle" fontSize="1.55" fontWeight="800" fill="white">
               {p.number}
             </text>
+            {onBall && (
+              <g transform="translate(0 -3.4)">
+                <rect x={-p.name.split(" ").at(-1)!.length * 0.62 - 1} y="-1.45" width={p.name.split(" ").at(-1)!.length * 1.24 + 2} height="2.5" rx="1.25" fill="rgba(7,11,20,.85)" />
+                <text y="0.45" textAnchor="middle" fontSize="1.55" fontWeight="700" fill="white">
+                  {p.name.split(" ").at(-1)}
+                </text>
+              </g>
+            )}
           </g>
         );
       })}
@@ -240,6 +232,7 @@ export function Pitch({
   focus,
   shots = [],
   replay,
+  carrier,
   children,
 }: {
   meta: Meta | null;
@@ -250,6 +243,7 @@ export function Pitch({
   focus?: string;
   shots?: Shot[];
   replay?: Replay | null;
+  carrier?: string | null;
   children?: React.ReactNode;
 }) {
   const ball = trail.at(-1);
@@ -318,7 +312,7 @@ export function Pitch({
           );
         })}
         {meta && (
-          <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} />
+          <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} carrier={carrier} />
         )}
         {recent.slice(1).map((p, i) => (
           <line
@@ -394,31 +388,6 @@ export function Pitch({
 }
 
 /* ---------- lower third ---------- */
-
-let current: HTMLAudioElement | null = null;
-
-export function say(text: string, lang: string) {
-  speak(text, lang);
-}
-
-/** Azure AI Speech neural voice from the API; the browser's own voice if that is unavailable. */
-function speak(text: string, lang: string) {
-  current?.pause();
-  const audio = new Audio(
-    `/api/speak?lang=${lang}&text=${encodeURIComponent(text)}`,
-  );
-  current = audio;
-  audio.play().catch(() => {
-    if (!("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang =
-      ({ en: "en-GB", hi: "hi-IN", es: "es-ES" } as Record<string, string>)[
-        lang
-      ] ?? "en-GB";
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  });
-}
 
 /** A slim broadcast lower third: newest card for this viewer, on screen for a few seconds. */
 export function LowerThird({
@@ -510,10 +479,12 @@ export function Momentum({
   data,
   meta,
   goals = [],
+  chaos,
 }: {
   data: { t: number; v: number }[];
   meta: Meta | null;
   goals?: Goal[];
+  chaos?: number;
 }) {
   const w = 600,
     h = 64;
@@ -605,122 +576,84 @@ export function Momentum({
           );
         })}
       </div>
-    </Panel>
-  );
-}
-
-function Split({
-  label,
-  home,
-  away,
-  meta,
-  fmt = (v: number) => String(v),
-}: {
-  label: string;
-  home: number;
-  away: number;
-  meta: Meta | null;
-  fmt?: (v: number) => string;
-}) {
-  const total = home + away || 1;
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-mono font-medium">{fmt(home)}</span>
-        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">
-          {label}
-        </span>
-        <span className="font-mono font-medium">{fmt(away)}</span>
-      </div>
-      <div className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-        <div
-          className="rounded-l-full transition-all duration-700"
-          style={{
-            width: `${(home / total) * 100}%`,
-            background: clubColor(meta, meta?.home.code),
-          }}
-        />
-        <div
-          className="rounded-r-full transition-all duration-700"
-          style={{
-            width: `${(away / total) * 100}%`,
-            background: clubColor(meta, meta?.away.code),
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function WinProbability({
-  p,
-  meta,
-}: {
-  p: Record<string, number>;
-  meta: Meta;
-}) {
-  const h = p[meta.home.code] ?? 0,
-    d = p.draw ?? 0,
-    a = p[meta.away.code] ?? 0;
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-mono font-medium">{h}%</span>
-        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">
-          Win chance · <span className="text-soft">draw {d}%</span>
-        </span>
-        <span className="font-mono font-medium">{a}%</span>
-      </div>
-      <div className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-        <div
-          className="rounded-l-full transition-all duration-700"
-          style={{ width: `${h}%`, background: meta.home.colors[0] }}
-        />
-        <div
-          className="bg-white/25 transition-all duration-700"
-          style={{ width: `${d}%` }}
-        />
-        <div
-          className="rounded-r-full transition-all duration-700"
-          style={{ width: `${a}%`, background: meta.away.colors[0] }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function MatchStats({
-  snapshot,
-  meta,
-}: {
-  snapshot: Snapshot | null;
-  meta: Meta | null;
-}) {
-  return (
-    <Panel title="Match stats">
-      {snapshot && meta ? (
-        <div className="space-y-3">
-          <Split
-            label="Possession %"
-            home={snapshot.possession_pct[meta.home.code]}
-            away={snapshot.possession_pct[meta.away.code]}
-            meta={meta}
-          />
-          <Split
-            label="Expected goals"
-            home={snapshot.xg[meta.home.code]}
-            away={snapshot.xg[meta.away.code]}
-            meta={meta}
-            fmt={(v) => v.toFixed(2)}
-          />
-          {snapshot.win_probability_pct && (
-            <WinProbability p={snapshot.win_probability_pct} meta={meta} />
-          )}
+      {chaos !== undefined && (
+        <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted">
+          <span>Control</span>
+          <div className="relative h-1 flex-1 rounded-full bg-gradient-to-r from-good via-warn to-bad">
+            <div className="absolute -top-1 h-3 w-1 rounded bg-white shadow transition-all duration-700" style={{ left: `calc(${chaos * 100}% - 2px)` }} />
+          </div>
+          <span>Chaos</span>
+          <span className={`w-20 text-right font-semibold ${chaos >= 0.65 ? "text-bad" : chaos <= 0.4 ? "text-good" : "text-warn"}`}>
+            {chaos >= 0.65 ? "Chaotic" : chaos <= 0.4 ? "Controlled" : "Contested"}
+          </span>
         </div>
-      ) : (
-        <div className="text-sm text-muted">Waiting for kick-off</div>
       )}
     </Panel>
+  );
+}
+
+
+
+export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta: Meta | null }) {
+  if (!snapshot || !meta)
+    return (
+      <Panel title="Match stats">
+        <div className="text-sm text-muted">Waiting for kick-off</div>
+      </Panel>
+    );
+  const h = snapshot.teams?.[meta.home.code];
+  const a = snapshot.teams?.[meta.away.code];
+  const rows: [string, number, number, ((v: number) => string)?][] = [
+    ["Possession", snapshot.possession_pct[meta.home.code], snapshot.possession_pct[meta.away.code], (v) => `${v}%`],
+    ["Shots (on target)", h?.shots ?? 0, a?.shots ?? 0],
+    ["Expected goals", snapshot.xg[meta.home.code], snapshot.xg[meta.away.code], (v) => v.toFixed(2)],
+    ["Pass accuracy", h?.pass_accuracy_pct ?? 0, a?.pass_accuracy_pct ?? 0, (v) => `${v}%`],
+    ["Corners", h?.corners ?? 0, a?.corners ?? 0],
+    ["Fouls", h?.fouls ?? 0, a?.fouls ?? 0],
+  ];
+  const onTarget = [h?.on_target ?? 0, a?.on_target ?? 0];
+  return (
+    <Panel title="Match stats" right={snapshot.win_probability_pct && <WinChip p={snapshot.win_probability_pct} meta={meta} />}>
+      <div className="space-y-[5px]">
+        {rows.map(([label, hv, av, fmt], i) => {
+          const total = hv + av || 1;
+          const f = fmt ?? ((v: number) => String(v));
+          return (
+            <div key={label} className="grid grid-cols-[52px_1fr_52px] items-center gap-2 text-[12px]">
+              <span className="text-right font-mono">
+                {f(hv)}
+                {i === 1 && <span className="text-muted"> ({onTarget[0]})</span>}
+              </span>
+              <div>
+                <div className="mb-0.5 text-center text-[10px] uppercase tracking-[0.12em] text-muted">{label}</div>
+                <div className="flex h-1 gap-0.5 overflow-hidden rounded-full">
+                  <div className="ml-auto rounded-l-full transition-all duration-700" style={{ width: `${(hv / total) * 100}%`, background: meta.home.colors[0] }} />
+                  <div className="rounded-r-full transition-all duration-700" style={{ width: `${(av / total) * 100}%`, background: meta.away.colors[0] }} />
+                </div>
+              </div>
+              <span className="font-mono">
+                {f(av)}
+                {i === 1 && <span className="text-muted"> ({onTarget[1]})</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+function WinChip({ p, meta }: { p: Record<string, number>; meta: Meta }) {
+  return (
+    <span className="flex items-center gap-1.5 normal-case tracking-normal" title="Live win probability">
+      <span className="font-mono text-soft">{p[meta.home.code]}%</span>
+      <span className="flex h-1.5 w-20 overflow-hidden rounded-full">
+        <span style={{ width: `${p[meta.home.code]}%`, background: meta.home.colors[0] }} />
+        <span className="bg-white/25" style={{ width: `${p.draw}%` }} />
+        <span style={{ width: `${p[meta.away.code]}%`, background: meta.away.colors[0] }} />
+      </span>
+      <span className="font-mono text-soft">{p[meta.away.code]}%</span>
+    </span>
   );
 }
 
@@ -1150,7 +1083,7 @@ export function RecapCard({
   useEffect(() => {
     if (!card) return;
     setShown(card);
-    if (voice) speak(`${card.content.headline}. ${card.content.body}`, lang);
+    if (voice) speak(`${card.content.headline}. ${card.content.body}`, lang, true);
     const t = window.setTimeout(() => setShown(undefined), 14000);
     return () => window.clearTimeout(t);
   }, [card?.overlay_id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1249,7 +1182,7 @@ export function AskPanel({
             : x,
         ),
       );
-      if (voice && r.verified) speak(r.answer, lang);
+      if (voice && r.verified) speak(r.answer, lang, true);
     } catch {
       setLog((l) =>
         l.map((x) =>
@@ -1486,6 +1419,125 @@ export function ProducerQueue({
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+/* ---------- live events feed ---------- */
+
+function eventText(e: MatchEvent, meta: Meta): { icon: string; text: string } | null {
+  const who = (id?: string) => (id ? playerName(meta, id) : "");
+  const x = e as any;
+  switch (e.type) {
+    case "goal":
+      return { icon: "⚽", text: `GOAL! ${who(e.player)}${x.assist_player ? `, assist ${who(x.assist_player)}` : ""}` };
+    case "shot":
+      if (e.outcome === "goal") return null;
+      return {
+        icon: "◎",
+        text: `${({ saved: "Shot saved", blocked: "Shot blocked", off_target: "Shot wide" } as Record<string, string>)[e.outcome ?? ""] ?? "Shot"}: ${who(e.player)} (${Math.round(x.shot_speed_kmh)} km/h)`,
+      };
+    case "card":
+      return { icon: x.card === "red" ? "🟥" : "🟨", text: `${x.card === "red" ? "Red" : "Yellow"} card: ${who(e.player)}` };
+    case "substitution":
+      return { icon: "⇄", text: `On ${who(x.player_on)}, off ${who(e.player)}` };
+    case "corner":
+      return { icon: "⚑", text: `Corner, ${e.team === meta.home.code ? meta.home.name : meta.away.name}` };
+    case "foul":
+      return { icon: "!", text: `Foul by ${who(e.player)}` };
+    case "dribble":
+      return { icon: "↗", text: `${who(e.player)} beats ${who(x.past_player)}` };
+    case "tackle":
+      return { icon: "✕", text: `Tackle won by ${who(e.player)}` };
+    case "interception":
+      return { icon: "✋", text: `Interception: ${who(e.player)}` };
+    case "period_start":
+      return { icon: "▶", text: e.period === 1 ? "Kick-off" : "Second half under way" };
+    case "period_end":
+      return { icon: "⏸", text: e.period === 1 ? "Half-time" : "Full-time" };
+    default:
+      return null;
+  }
+}
+
+export function LiveEvents({ feed, meta }: { feed: MatchEvent[]; meta: Meta | null }) {
+  return (
+    <Panel title="Live events">
+      {!meta || !feed.length ? (
+        <div className="text-sm text-muted">Waiting for kick-off</div>
+      ) : (
+        <ol className="h-full space-y-1 overflow-hidden">
+          {feed.slice(0, 7).map((e) => {
+            const t = eventText(e, meta);
+            if (!t) return null;
+            return (
+              <li key={e.event_id} className="rise flex items-center gap-2 text-[12px]">
+                <span className="w-7 shrink-0 font-mono text-muted">{e.minute}'</span>
+                <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: clubColor(meta, e.team) }} />
+                <span className="w-4 shrink-0 text-center">{t.icon}</span>
+                <span className={`truncate ${e.type === "goal" ? "font-semibold text-white" : "text-soft"}`}>{t.text}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </Panel>
+  );
+}
+
+/* ---------- full time ---------- */
+
+export function FullTime({
+  meta,
+  snapshot,
+  league,
+  recap,
+  onLeave,
+}: {
+  meta: Meta;
+  snapshot: Snapshot | null;
+  league: League | null;
+  recap: Overlay | undefined;
+  onLeave: () => void;
+}) {
+  const s = snapshot?.score ?? {};
+  const pos = (code: string) => league?.table.find((r) => r.code === code);
+  return (
+    <div className="rise absolute inset-0 z-10 grid place-items-center bg-black/65 backdrop-blur-sm">
+      <div className="w-[min(640px,90%)] rounded-2xl bg-[rgba(7,11,20,.96)] p-6 shadow-2xl ring-1 ring-white/10">
+        <div className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">Full-time</div>
+        <div className="mt-3 flex items-center justify-center gap-5">
+          <Crest code={meta.home.code} colors={meta.home.colors} size={44} />
+          <span className="font-mono text-5xl">
+            {s[meta.home.code] ?? 0} : {s[meta.away.code] ?? 0}
+          </span>
+          <Crest code={meta.away.code} colors={meta.away.colors} size={44} />
+        </div>
+        <div className="mt-1 text-center text-sm text-soft">
+          {meta.home.name} v {meta.away.name}
+        </div>
+        {recap && (
+          <div className="mt-4 rounded-lg border border-line bg-panel-2/60 p-4">
+            <div className="font-semibold">{recap.content.headline}</div>
+            <p className="mt-1 text-[14px] leading-relaxed text-soft">{recap.content.body}</p>
+          </div>
+        )}
+        {league && (
+          <div className="mt-4 grid grid-cols-2 gap-3 text-center text-[13px]">
+            {[meta.home.code, meta.away.code].map((c) => (
+              <div key={c} className="rounded-lg border border-line px-3 py-2">
+                <div className="font-mono text-2xl">{pos(c)?.pos}</div>
+                <div className="text-[11px] uppercase tracking-[0.12em] text-muted">
+                  {pos(c)?.name} · {pos(c)?.points} pts
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <button onClick={onLeave} className="mt-5 w-full rounded-xl bg-accent py-2.5 font-semibold text-ink">
+          Watch another match
+        </button>
+      </div>
     </div>
   );
 }

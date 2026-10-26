@@ -33,6 +33,8 @@ Rules:
 - Air at most two items per call. Prefer high significance, but keep variety: skip a moment of the same type
   as one aired in the last three minutes unless it is clearly bigger.
 - Hold minor milestones and speed readings unless nothing else is happening.
+- Keep the commentary about people, not only teams: "player_spotlight" (the most influential player of
+  the last ten minutes) and "great_save" moments are worth airing when nothing bigger is happening.
 - "around_the_league" moments are goals in the other matchday fixtures. Air them when they move one of
   the two clubs on the pitch up or down the live table, or put a rival above them; otherwise hold them.
 
@@ -58,7 +60,8 @@ Reply with JSON only:
 NARRATOR = f"""You are the Narrator for a live football broadcast. Turn the Analyst's insight into an on-screen
 caption: a headline of at most six words and one line of at most 22 words.
 
-Only use numbers that appear in the insight. Use at most two numbers in the line, and no stats jargon
+Name the players involved: the scorer and whoever set it up, the keeper who made the save, the player
+in the spotlight. Only use numbers that appear in the insight. Use at most two numbers in the line, and no stats jargon
 ("PPDA", "xG", "tempo", "chaos index"): this caption is for every viewer; analysts get their own version. If the Verifier
 rejected an earlier draft, fix exactly the problems it lists.
 

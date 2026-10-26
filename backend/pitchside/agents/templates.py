@@ -18,7 +18,9 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
     team = clubs.get(m.team or "", m.team or "")
     match m.type:
         case "goal":
-            return f"Goal for {team}. {who} scores, and it's {_ev(m, 'score')}."
+            setter = next((e.player for e in m.evidence if e.metric == "set_up_by"), None)
+            assist = f", set up by {names.get(setter, '')}" if setter else ""
+            return f"Goal for {team}. {who} scores{assist}, and it's {_ev(m, 'score')}."
         case "big_chance":
             outcome = {"saved": "saved", "blocked": "blocked", "off_target": "off target"}.get(
                 str(_ev(m, "outcome")), "missed"
@@ -41,6 +43,14 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             ]
             goals = f"Goals from {', '.join(scorers)}." if scorers else "No goals yet."
             return f"{when}, and it's {_ev(m, 'score')}. {goals}"
+        case "player_spotlight":
+            top = m.evidence[0]
+            label = top.metric.replace("_", " ").replace(
+                "line breaking or key passes", "line-breaking or key passes"
+            )
+            return f"{who} has been everywhere: {top.value} {label} in the last ten minutes."
+        case "great_save":
+            return f"Great save from {who}, keeping out a {_ev(m, 'xg_saved')} xG chance."
         case "around_the_league":
             pos = _ev(m, "live_position")
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos in (1, 2, 3) else 0, "th")
