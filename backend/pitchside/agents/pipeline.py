@@ -346,18 +346,28 @@ class PersonaExec(Executor):
     async def personalise(self, job: Job, ctx: WorkflowContext[Job, EnglishReady]) -> None:
         t0 = time.perf_counter()
         wanted = [p for p in job.profiles if p != "casual"] if job.fallback else list(job.profiles)
-        reply = await ask(self.agent, self._prompt(job, wanted)) if wanted else None
-        variants = (reply or {}).get("variants", {})
-        problems = {p: self._problems(job, p, variants.get(p)) for p in wanted}
-        failed = {p: pr for p, pr in problems.items() if pr}
-
         retried = 0
-        if failed and reply:
-            retry = await ask(self.agent, self._prompt(job, list(failed), failed))
-            for p, v in ((retry or {}).get("variants") or {}).items():
-                if p in failed and not self._problems(job, p, v):
-                    variants[p], retried = v, retried + 1
-                    del failed[p]
+
+        async def one(profile: str) -> tuple[dict | None, list[str], bool]:
+            """One viewer's rewrite, with one retry carrying the Verifier's reasons."""
+            reply = await ask(self.agent, self._prompt(job, [profile]))
+            v = ((reply or {}).get("variants") or {}).get(profile)
+            problems = self._problems(job, profile, v)
+            if problems and reply:
+                again = await ask(self.agent, self._prompt(job, [profile], {profile: problems}))
+                v2 = ((again or {}).get("variants") or {}).get(profile)
+                if not self._problems(job, profile, v2):
+                    return v2, [], True
+            return v, problems, False
+
+        # Every viewer's version is written at the same time: the step takes as long as the slowest one.
+        results = await asyncio.gather(*(one(p) for p in wanted)) if wanted and self.agent else []
+        variants = {p: r[0] for p, r in zip(wanted, results)}
+        failed = {p: r[1] for p, r in zip(wanted, results) if r[1]}
+        if not self.agent:
+            failed = {p: ["no model"] for p in wanted}
+        retried = sum(r[2] for r in results)
+        reply = bool(results)
 
         for p in job.profiles:
             job.variants[p] = job.caption if p in failed or p not in wanted else variants[p]
