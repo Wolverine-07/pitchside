@@ -78,3 +78,21 @@ def test_minute_references_must_match_the_moment():
     assert check_context("Wexavi scores at 68 minutes", 68)
     assert not check_context("Wexavi scores in the 68th minute", 68)
     assert check_context("Wexavi scores in the 70th minute", 68)
+
+
+def test_audience_checks_keep_jargon_for_analysts():
+    from pitchside.agents.verify import check_audience
+
+    line = "Riverside press at 8.3 PPDA with 92% passing and 6.7 passes a minute"
+    assert check_audience(line, "casual")
+    assert check_audience(line, "player:KSC-09")
+    assert not check_audience(line, "analyst")
+    assert not check_audience("Riverside press hard and keep 92% of their passes", "casual")
+
+
+def test_late_is_only_allowed_late_in_the_match():
+    from pitchside.agents.verify import check_context
+
+    assert check_context("Late scramble on the pitch", 62)
+    assert not check_context("Late scramble on the pitch", 86)
+    assert not check_context("A late tackle stops the break", 20)

@@ -3,58 +3,58 @@
     "status": "completed",
     "counts": {
       "errored": 0,
-      "failed": 0,
-      "passed": 5,
-      "total": 5
+      "failed": 2,
+      "passed": 100,
+      "total": 102
     },
     "per_evaluator": {
       "groundedness": {
-        "passed": 5,
-        "failed": 0
+        "passed": 100,
+        "failed": 2
       },
       "relevance": {
-        "passed": 5,
+        "passed": 102,
         "failed": 0
       },
       "coherence": {
-        "passed": 5,
+        "passed": 102,
         "failed": 0
       },
       "fluency": {
-        "passed": 5,
+        "passed": 102,
         "failed": 0
       }
     },
-    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_d54862541dd84a12bbeda778a4f3bda6/run/evalrun_6c1a4fb0576746daa554c14f81389661",
+    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_ba5afbb7ee654ff683990bc91ede6c0e/run/evalrun_1191245e2cf444aebbdd594daa074f67",
     "error": null
   },
   "Pitchside agent team": {
     "status": "completed",
     "counts": {
       "errored": 0,
-      "failed": 1,
-      "passed": 4,
-      "total": 5
+      "failed": 12,
+      "passed": 90,
+      "total": 102
     },
     "per_evaluator": {
       "groundedness": {
-        "passed": 4,
-        "failed": 1
+        "passed": 91,
+        "failed": 11
       },
       "relevance": {
-        "passed": 5,
+        "passed": 102,
         "failed": 0
       },
       "coherence": {
-        "passed": 5,
+        "passed": 102,
         "failed": 0
       },
       "fluency": {
-        "passed": 5,
-        "failed": 0
+        "passed": 101,
+        "failed": 1
       }
     },
-    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_b434672ac9464f85863c0d980156b07f/run/evalrun_d4afb81ce18c427495da93a855768ff5",
+    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_9cf66340c53b41b1aec8e8b66f29c8f5/run/evalrun_6c011338acf94d4cb30af140e3c809ca",
     "error": null
   }
 }

@@ -34,7 +34,7 @@ from pitchside.stats.state import Moment
 
 from . import prompts
 from .templates import template_line
-from .verify import check_citations, check_names, check_numbers, verify
+from .verify import check_audience, check_citations, check_names, check_numbers, verify
 
 MAX_ATTEMPTS = 2
 CALL_TIMEOUT_S = 12.0
@@ -63,9 +63,18 @@ class Job:
     translations: dict[str, dict[str, dict]] = field(default_factory=dict)
     trace: list[dict] = field(default_factory=list)
 
-    def facts(self) -> dict:
-        """What a caption may state: the moment, the Analyst's verified citations, minute and score."""
+    def facts(self, profile: str | None = None) -> dict:
+        """What a caption may state: the moment, the Analyst's verified citations, minute and score.
+
+        In player-focus mode the followed player may be named, with his own stats."""
+        followed = profile.split(":", 1)[1] if profile and profile.startswith("player:") else None
+        extra = (
+            {"followed": {followed: self.sheet.get("players", {}).get(followed)}}
+            if followed
+            else {}
+        )
         return {
+            **extra,
             "moment": {
                 "minute": self.moment.minute,
                 "evidence": [e.__dict__ for e in self.moment.evidence],
@@ -232,6 +241,9 @@ class VerifierExec(Executor):
         for cand in job.candidates:
             text = f"{cand.get('headline', '')}. {cand.get('line', '')}"
             result = verify(text, facts, job.names)
+            if result and (audience := check_audience(text, "casual")):
+                # The base caption is what casual viewers see if a rewrite fails, so it must suit them.
+                result.ok, result.problems = False, audience
             if result:
                 h = cand.get("headline", "").strip()
                 cand["headline"] = h[:1].upper() + h[1:]
@@ -284,8 +296,11 @@ class PersonaExec(Executor):
                         "profiles": wanted,
                         "facts": job.cited + [e.__dict__ for e in job.moment.evidence],
                         "clubs": job.clubs,
-                        "player_names": {
-                            p.split(":")[1]: job.names.get(p.split(":")[1])
+                        "followed_players": {
+                            p.split(":")[1]: {
+                                "name": job.names.get(p.split(":")[1]),
+                                "stats": job.sheet.get("players", {}).get(p.split(":")[1]),
+                            }
                             for p in wanted
                             if p.startswith("player:")
                         },
@@ -297,16 +312,22 @@ class PersonaExec(Executor):
         )
         variants = (reply or {}).get("variants", {})
         kept, why = 0, []
-        facts = job.facts()
         for profile in job.profiles:
             v = variants.get(profile)
             check = (
                 verify(
-                    f"{v.get('headline', '')}. {v.get('line', '')}", facts, job.names, live=False
+                    f"{v.get('headline', '')}. {v.get('line', '')}",
+                    job.facts(profile),
+                    job.names,
+                    live=False,
                 )
                 if v
                 else None
             )
+            if check:
+                audience = check_audience(f"{v.get('headline', '')}. {v.get('line', '')}", profile)
+                if audience:
+                    check.ok, check.problems = False, audience
             if check:
                 job.variants[profile] = v
                 kept += 1
@@ -346,14 +367,14 @@ class LinguistExec(Executor):
             else None
         )
         out = (reply or {}).get("translations", {})
-        facts = job.facts()
         kept = 0
         for lang in others:
             job.translations[lang] = {}
             for profile, caption in job.variants.items():
                 t = out.get(lang, {}).get(profile)
                 text = f"{(t or {}).get('headline', '')}. {(t or {}).get('line', '')}"
-                if t and not check_numbers(text, facts) and not check_names(text, facts, job.names):
+                pf = job.facts(profile)
+                if t and not check_numbers(text, pf) and not check_names(text, pf, job.names):
                     job.translations[lang][profile] = t
                     kept += 1
                 else:

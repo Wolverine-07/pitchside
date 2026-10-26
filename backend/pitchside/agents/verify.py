@@ -179,13 +179,15 @@ def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
 
 
 END_OF_MATCH = re.compile(
-    r"\b(late on|closing (minutes|stages)|final (minutes|five|stages|whistle)|dying (minutes|seconds)|"
-    r"frantic finish|final moments|late (chaos|surge|drama|on|in the (game|match))|(rally|control|push|surge) late|with (just )?minutes (left|to go))\b",
+    r"\b(closing (minutes|stages)|final (minutes|five|stages|whistle|moments)|dying (minutes|seconds)|"
+    r"frantic finish|with (just )?minutes (left|to go)|late in the (game|match)|"
+    r"late(?! (tackle|challenge|run|arrival|foul|booking|card)))\b",
     re.IGNORECASE,
 )
 SINGULAR_CLUB = re.compile(
     r"\b(Kingsport|Riverside)( City| Athletic)? (is|was|has|wins|keeps|holds|takes|looks|pushes|presses|"
-    r"battles|struggles|finds|makes|scores|leads|trails|dominates|controls)\b"
+    r"battles|struggles|finds|makes|scores|leads|trails|dominates|controls|boasts|suffers|raises|drives|"
+    r"seizes|grabs|needs|wants|shows|sits|plays|goes|turns|seems|remains|stays|gets|loses|misses)\b"
 )
 
 
@@ -210,6 +212,25 @@ def check_context(text: str, minute: int | None) -> list[str]:
                 problems.append(f"says minute {said}, but this moment is in minute {minute}")
         if HALF_HOUR.search(text) and not 25 <= minute <= 40:
             problems.append(f"mentions the half-hour, but it is minute {minute}")
+    return problems
+
+
+JARGON = re.compile(
+    r"\b(ppda|xg|kph|tempo of|chaos index|window_s|regains_opp_half)\b", re.IGNORECASE
+)
+
+
+def check_audience(text: str, profile: str) -> list[str]:
+    """Analysts get the numbers; everyone else gets the story."""
+    if profile.startswith("analyst"):
+        return []
+    kind = profile.split(":")[0]
+    problems = []
+    jargon = JARGON.search(text)
+    if jargon:
+        problems.append(f"stats jargon '{jargon.group(0)}' in a {kind} caption")
+    if len(NUM.findall(text)) > 2:
+        problems.append(f"more than two numbers in a {kind} caption")
     return problems
 
 

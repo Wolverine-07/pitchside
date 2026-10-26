@@ -39,6 +39,7 @@ class Broadcast:
         self.agents = build_agents(client, analyst_tools or self.tools.agent_tools(), deep_client)
         self.workflow = build_workflow(self.agents)
         self.profiles = profiles or ["casual"]
+        self.followed = [p.split(":", 1)[1] for p in self.profiles if p.startswith("player:")]
         self.langs = langs or ["en"]
         self.aired: list[dict] = []
         self.recent_lines: list[str] = []
@@ -90,7 +91,11 @@ class Broadcast:
                         clubs=self.clubs,
                         profiles=self.profiles,
                         langs=self.langs,
-                        players=[p for p in {m.player, *(e.player for e in m.evidence)} if p],
+                        players=[
+                            p
+                            for p in {m.player, *(e.player for e in m.evidence), *self.followed}
+                            if p
+                        ],
                     )
                 )
             urgent = any(j.moment.type in URGENT for j in self.pending)

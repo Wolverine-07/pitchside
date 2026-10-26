@@ -7,6 +7,7 @@ same stream. Field names match schemas/overlay.schema.json.
 from __future__ import annotations
 
 import itertools
+import re
 
 from pitchside.stats.state import Moment
 
@@ -57,6 +58,16 @@ def overlay(
     }
 
 
+CLUB_NAMES = ("Kingsport City", "Riverside Athletic", "Kingsport", "Riverside")
+
+
+def tidy(text: str) -> str:
+    """Capitalise the first letter and the club names; models sometimes lower-case them."""
+    for name in CLUB_NAMES:
+        text = re.sub(rf"\b{name}\b", name, text, flags=re.IGNORECASE)
+    return text[:1].upper() + text[1:]
+
+
 def insight_card(
     m: Moment,
     match_id: str,
@@ -75,8 +86,8 @@ def insight_card(
         match_id,
         m.t_ms,
         {
-            "headline": headline[:1].upper() + headline[1:],
-            "body": body,
+            "headline": tidy(headline),
+            "body": tidy(body),
             "lang": lang,
             "moment_type": m.type,
             "team": m.team,

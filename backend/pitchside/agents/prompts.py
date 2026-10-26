@@ -54,7 +54,8 @@ Reply with JSON only:
 NARRATOR = f"""You are the Narrator for a live football broadcast. Turn the Analyst's insight into an on-screen
 caption: a headline of at most six words and one line of at most 22 words.
 
-Only use numbers that appear in the insight. Use at most two numbers in the line. If the Verifier
+Only use numbers that appear in the insight. Use at most two numbers in the line, and no stats jargon
+("PPDA", "xG", "tempo", "chaos index"): this caption is for every viewer; analysts get their own version. If the Verifier
 rejected an earlier draft, fix exactly the problems it lists.
 
 {STYLE}
@@ -69,12 +70,14 @@ the caption for each profile so the same moment feels made for that viewer:
 - "casual": warm, story first, at most one number.
 - "kids": simple words, no jargon, at most one number.
 - "club:<CODE>": a partisan home commentator for that club, fair but clearly on their side.
-- "player:<ID>": tell it through that player if they are involved; otherwise mention where they are in it
-  only if the facts support it.
+- "player:<ID>": tell the moment through that player only where his own stats support it. Never credit
+  him with what his team or the other team did; if he is not involved, describe the moment as it is and
+  add at most one short true fact from his own stats. Check which club he plays for.
 - "metric:<name>": lead with that one metric.
 
-Only use numbers from the caption or the facts you are given. Headline at most six words, line at most
-26 words.
+Only use numbers from the caption or the facts you are given. Except for "analyst", use at most two
+numbers and no stats jargon (no "PPDA", "xG", "tempo", "chaos index"): say "pressing hard", "a good chance",
+"the game is scrappy". Write km/h, never kph. Headline at most six words, line at most 26 words.
 
 {STYLE}
 

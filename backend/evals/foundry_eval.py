@@ -27,7 +27,12 @@ from pitchside.stats.state import MatchState
 
 load_dotenv()
 
-EVALUATORS = [FoundryEvals.GROUNDEDNESS, FoundryEvals.RELEVANCE, FoundryEvals.COHERENCE, FoundryEvals.FLUENCY]
+EVALUATORS = [
+    FoundryEvals.GROUNDEDNESS,
+    FoundryEvals.RELEVANCE,
+    FoundryEvals.COHERENCE,
+    FoundryEvals.FLUENCY,
+]
 
 
 def contexts(seed: int, storyline: str) -> dict[tuple[int, str], str]:
@@ -43,8 +48,17 @@ def contexts(seed: int, storyline: str) -> dict[tuple[int, str], str]:
                 "clubs": {"KSC": "Kingsport City", "RVA": "Riverside Athletic"},
                 "match_minute": m.minute,
                 "snapshot": st.snapshot(),
+                # Everything the agents' tools could return at this moment, so the judge is fair.
+                "last_3_minutes": {t: st.team_metrics(t, 180) for t in st.teams},
                 "last_5_minutes": {t: st.team_metrics(t, 300) for t in st.teams},
                 "last_10_minutes": {t: st.team_metrics(t, 600) for t in st.teams},
+                "whole_match": {t: st.team_metrics(t) for t in st.teams},
+                "chaos_index": {f"last_{w}_s": st.chaos(w) for w in (180, 300, 600)},
+                "players": {
+                    pid: {k: v for k, v in st.player_summary(pid).items() if v}
+                    for pid in st.names
+                    if st.player[pid] or pid in st.physical
+                },
             }
             out.setdefault((m.minute, m.type), json.dumps(facts))
     return out
@@ -92,14 +106,29 @@ async def main() -> None:
             items = items[: args.limit]
         print(f"{label}: {len(items)} captions", flush=True)
         res = await evals.evaluate(items, eval_name=f"Pitchside A/B: {label}")
+        failures = [
+            {
+                "caption": it.output_text,
+                "scores": [
+                    {"name": s.name, "score": s.score, "passed": s.passed, "sample": s.sample}
+                    for s in it.scores
+                ],
+            }
+            for it in (res.items or [])
+            if it.is_failed
+        ]
         summary[label] = {
+            "failures": failures,
             "status": res.status,
             "counts": res.result_counts,
             "per_evaluator": res.per_evaluator,
             "report_url": res.report_url,
             "error": res.error,
         }
-        print(json.dumps(summary[label], indent=2), flush=True)
+        print(
+            json.dumps({k: v for k, v in summary[label].items() if k != "failures"}, indent=2),
+            flush=True,
+        )
     Path("evals/foundry_results.json").write_text(json.dumps(summary, indent=2))
 
 
