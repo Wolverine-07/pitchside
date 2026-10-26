@@ -68,3 +68,26 @@ def test_live_mode_streams_events_while_agents_work_in_the_background():
         t["steps"][0]["agent"] == "director" and t["steps"][-1]["agent"] == "linguist"
         for t in traces
     )
+
+
+def test_matchday_league_moves_and_reports_goals_elsewhere():
+    from pitchside.sim.league import LeagueState, clubs, matchday
+
+    fixtures = matchday(16, "comeback")
+    all_clubs = clubs()
+    league = LeagueState(
+        fixtures,
+        {c: k.name for c, k in all_clubs.items()},
+        {c: k.colors[0] for c, k in all_clubs.items()},
+    )
+
+    async def go():
+        b = Broadcast(fixtures[0].events, None, ["casual"], ["en"], league=league)
+        return [item async for item in b.run()]
+
+    items = asyncio.run(go())
+    final = [i["league"] for i in items if i["kind"] == "league"][-1]
+    assert all(s["finished"] for s in final["scores"])
+    assert sum(r["played"] for r in final["table"]) == 8 * 10
+    traces = [i["trace"] for i in items if i["kind"] == "trace"]
+    assert any(t["type"] == "around_the_league" for t in traces)

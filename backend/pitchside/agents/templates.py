@@ -34,6 +34,10 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             return f"{str(_ev(m, 'card')).title()} card for {who}."
         case "player_speed":
             return f"{who} clocked at {_ev(m, 'speed_kmh')} km/h."
+        case "around_the_league":
+            pos = _ev(m, "live_position")
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos in (1, 2, 3) else 0, "th")
+            return f"{m.summary}. {team} are {pos}{suffix} on the live table."
         case "milestone":
             return m.summary + "."
         case _:

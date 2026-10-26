@@ -51,8 +51,23 @@ class StatsTools:
         side = "home" if self.state.meta["home"]["code"] == team.upper() else "away"
         return self.state.meta[side]["players"]
 
+    def league_table(self) -> dict:
+        """Live Coastal League table (as it stands, with this matchday's scores) and the other matchday scores."""
+        lg = getattr(self.state, "league", None)
+        if lg is None:
+            return {"note": "no league context for this match"}
+        snap = lg.snapshot()
+        return {
+            "table": [
+                {k: r[k] for k in ("pos", "code", "name", "points", "gd", "played", "moved")}
+                for r in snap["table"]
+            ],
+            "scores": snap["scores"],
+        }
+
     def functions(self) -> list[Callable]:
         return [
+            self.league_table,
             self.match_snapshot,
             self.team_metrics,
             self.player_summary,
@@ -72,6 +87,10 @@ class StatsTools:
             "metrics": {t: {w: self.team_metrics(t, w) for w in (*WINDOWS, None)} for t in teams},
             "chaos": {w: self.state.chaos(w) for w in WINDOWS},
             "players": {p: self.player_summary(p) for p in players},
+            "league": {
+                r["code"]: {"live_position": r["pos"], "points": r["points"], "gd": r["gd"]}
+                for r in (self.league_table().get("table") or [])
+            },
         }
 
 
@@ -120,6 +139,11 @@ def build_mcp_server(get_state: Callable[[str | None], MatchState]) -> MCPServer
     def recent_moments(limit: int = 5, ctx: Context | None = None) -> str:
         """Most recent flagged moments with their evidence."""
         return json.dumps(_tools(ctx).recent_moments(limit))
+
+    @server.tool()
+    def league_table(ctx: Context | None = None) -> str:
+        """Live league table and the other matchday scores."""
+        return json.dumps(_tools(ctx).league_table())
 
     @server.tool()
     def roster(team: str, ctx: Context | None = None) -> str:

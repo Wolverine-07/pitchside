@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Meta, Overlay, Snapshot, Trace } from "./types";
+import type { Goal, League, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 import { pitchPos, type BallPoint } from "./useMatch";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
@@ -14,6 +14,7 @@ const MOMENT_LABEL: Record<string, string> = {
   card: "Booking",
   milestone: "Milestone",
   player_speed: "Top speed",
+  around_the_league: "Around the league",
 };
 export const momentLabel = (t: string) => MOMENT_LABEL[t] ?? t.replace("_", " ");
 
@@ -30,7 +31,26 @@ function Crest({ code, color }: { code: string; color: string }) {
   );
 }
 
-export function Scoreboard({ meta, snapshot, clock }: { meta: Meta | null; snapshot: Snapshot | null; clock: { minute: number; added?: number; period: number } }) {
+const playerName = (meta: Meta, id: string) =>
+  [...meta.home.players, ...meta.away.players].find((p) => p.id === id)?.name.split(" ").at(-1) ?? id;
+
+function Scorers({ meta, goals, team, align }: { meta: Meta; goals: Goal[]; team: string; align: "left" | "right" }) {
+  const mine = goals.filter((g) => g.team === team);
+  if (!mine.length) return null;
+  return (
+    <div className={`truncate text-[11px] text-soft ${align === "right" ? "text-right" : ""}`}>
+      {mine.map((g, i) => (
+        <span key={i}>
+          {i > 0 && ", "}
+          {playerName(meta, g.player)} {g.minute}
+          {g.added ? `+${g.added}` : ""}'
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function Scoreboard({ meta, snapshot, clock, goals = [] }: { meta: Meta | null; snapshot: Snapshot | null; clock: { minute: number; added?: number; period: number }; goals?: Goal[] }) {
   if (!meta) return <div className="h-16 rounded-xl border border-line bg-panel" />;
   const s = snapshot?.score ?? { [meta.home.code]: 0, [meta.away.code]: 0 };
   const half = clock.minute === 0 ? "Pre-match" : clock.period === 1 ? "First half" : "Second half";
@@ -38,7 +58,10 @@ export function Scoreboard({ meta, snapshot, clock }: { meta: Meta | null; snaps
     <div className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-xl border border-line bg-panel px-5">
       <div className="flex min-w-0 items-center gap-3">
         <Crest code={meta.home.code} color={meta.home.colors[0]} />
-        <span className="truncate text-[15px] font-semibold">{meta.home.name}</span>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold">{meta.home.name}</div>
+          <Scorers meta={meta} goals={goals} team={meta.home.code} align="left" />
+        </div>
       </div>
       <div className="flex flex-col items-center">
         <div className="flex items-center gap-3 font-mono text-3xl font-medium leading-none">
@@ -55,7 +78,10 @@ export function Scoreboard({ meta, snapshot, clock }: { meta: Meta | null; snaps
         </div>
       </div>
       <div className="flex min-w-0 items-center justify-end gap-3">
-        <span className="truncate text-right text-[15px] font-semibold">{meta.away.name}</span>
+        <div className="min-w-0">
+          <div className="truncate text-right text-[15px] font-semibold">{meta.away.name}</div>
+          <Scorers meta={meta} goals={goals} team={meta.away.code} align="right" />
+        </div>
         <Crest code={meta.away.code} color={meta.away.colors[0]} />
       </div>
     </div>
@@ -99,7 +125,7 @@ function Players({ meta, onPitch, ball, focus }: { meta: Meta; onPitch: string[]
   );
 }
 
-export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, children }: { meta: Meta | null; trail: BallPoint[]; tags: Overlay[]; clockMs: number; onPitch: string[]; focus?: string; children?: React.ReactNode }) {
+export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], children }: { meta: Meta | null; trail: BallPoint[]; tags: Overlay[]; clockMs: number; onPitch: string[]; focus?: string; shots?: Shot[]; children?: React.ReactNode }) {
   const ball = trail.at(-1);
   const recent = trail.slice(-5);
   const recentTags = tags.filter((t) => clockMs - t.anchor_t_ms < 20_000).slice(-2);
@@ -130,6 +156,18 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, children }: 
           <rect x="-1.6" y="30.34" width="1.6" height="7.32" />
           <rect x="105" y="30.34" width="1.6" height="7.32" />
         </g>
+        {shots.map((s, i) => {
+          const r = 0.7 + s.xg * 2.6; // marker size grows with chance quality
+          const color = clubColor(meta, s.team);
+          return s.outcome === "goal" ? (
+            <g key={i} transform={`translate(${s.x} ${68 - s.y})`}>
+              <circle r={r + 0.6} fill="none" stroke="white" strokeWidth="0.35" />
+              <circle r={r} fill={color} />
+            </g>
+          ) : (
+            <circle key={i} cx={s.x} cy={68 - s.y} r={r} fill="none" stroke={color} strokeWidth="0.35" opacity="0.9" />
+          );
+        })}
         {meta && <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} />}
         {recent.slice(1).map((p, i) => (
           <line key={i} x1={recent[i].x} y1={68 - recent[i].y} x2={p.x} y2={68 - p.y} stroke="white" strokeOpacity={0.12 + i * 0.12} strokeWidth="0.35" strokeLinecap="round" />
@@ -416,4 +454,142 @@ export function AgentTrace({ traces }: { traces: Trace[] }) {
 
 function Empty({ text }: { text: string }) {
   return <div className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">{text}</div>;
+}
+
+/* ---------- goal banner ---------- */
+
+export function GoalBanner({ goal, meta }: { goal: (Goal & { at: number }) | null; meta: Meta | null }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!goal) return;
+    setShow(true);
+    const t = window.setTimeout(() => setShow(false), 3200);
+    return () => window.clearTimeout(t);
+  }, [goal?.at]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!show || !goal || !meta) return null;
+  const color = clubColor(meta, goal.team);
+  const club = goal.team === meta.home.code ? meta.home.name : meta.away.name;
+  return (
+    <div className="goal-flash pointer-events-none absolute inset-0 grid place-items-center">
+      <div className="text-center">
+        <div className="goal-word text-[min(14cqw,120px)] font-extrabold italic leading-none tracking-tight" style={{ color: "white", textShadow: `0 0 40px ${color}` }}>
+          GOAL
+        </div>
+        <div className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold" style={{ background: color }}>
+          {playerName(meta, goal.player)} · {club} · {goal.minute}'
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- league ---------- */
+
+export function ScoresTicker({ league }: { league: League | null }) {
+  if (!league?.scores.length) return null;
+  return (
+    <div className="flex h-9 shrink-0 items-center gap-0 overflow-hidden border-b border-line bg-panel/80 text-[12px]">
+      <span className="flex h-full shrink-0 items-center bg-accent px-3 font-bold uppercase tracking-[0.12em] text-ink">
+        {league.league} · MD{league.matchday}
+      </span>
+      <div className="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto px-4">
+        {league.scores.map((s) => (
+          <span key={s.id} className="flex shrink-0 items-center gap-2 font-medium">
+            <span>{s.home}</span>
+            <span className="rounded bg-white/10 px-1.5 font-mono">
+              {s.home_goals}-{s.away_goals}
+            </span>
+            <span>{s.away}</span>
+            <span className={`font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}>{s.finished ? "FT" : `${s.minute}'`}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function LeagueTable({ league, highlight }: { league: League | null; highlight: string[] }) {
+  if (!league) return <Empty text="The live table appears when the matchday kicks off." />;
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <div className="text-[13px] font-semibold">{league.league}</div>
+        <div className="text-[11px] uppercase tracking-[0.12em] text-muted">Live table · MD{league.matchday}</div>
+      </div>
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr className="text-[10px] uppercase tracking-[0.12em] text-muted">
+            <th className="w-7 py-1 text-left">#</th>
+            <th className="py-1 text-left">Club</th>
+            <th className="w-8 py-1 text-right">P</th>
+            <th className="w-10 py-1 text-right">GD</th>
+            <th className="w-10 py-1 text-right">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {league.table.map((r) => (
+            <tr key={r.code} className={`border-t border-line ${highlight.includes(r.code) ? "bg-accent/10" : ""}`}>
+              <td className="py-1.5 font-mono">
+                {r.pos}
+                {!!r.moved && <span className={`ml-0.5 text-[10px] ${r.moved > 0 ? "text-good" : "text-bad"}`}>{r.moved > 0 ? "▲" : "▼"}</span>}
+              </td>
+              <td className="py-1.5">
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
+                  <span className={highlight.includes(r.code) ? "font-semibold" : ""}>{r.name}</span>
+                </span>
+              </td>
+              <td className="py-1.5 text-right font-mono text-soft">{r.played}</td>
+              <td className="py-1.5 text-right font-mono text-soft">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+              <td className="py-1.5 text-right font-mono font-semibold">{r.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-4 mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Matchday {league.matchday}</div>
+      <div className="space-y-1.5">
+        {league.scores.map((s) => (
+          <div key={s.id} className="flex items-center justify-between rounded-lg border border-line bg-panel-2/60 px-3 py-2 text-[13px]">
+            <span className="min-w-0 flex-1 truncate">{league.table.find((r) => r.code === s.home)?.name}</span>
+            <span className="mx-2 shrink-0 font-mono font-semibold">
+              {s.home_goals} - {s.away_goals}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-right">{league.table.find((r) => r.code === s.away)?.name}</span>
+            <span className={`w-9 text-right font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}>{s.finished ? "FT" : `${s.minute}'`}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- player card ---------- */
+
+export function PlayerCard({ stats, meta }: { stats: PlayerStats | null; meta: Meta | null }) {
+  if (!stats) return null;
+  const color = clubColor(meta, stats.team);
+  const items = [
+    ["Passes", stats.passes],
+    ["Accuracy", stats.pass_accuracy_pct != null ? `${stats.pass_accuracy_pct}%` : "–"],
+    ["Distance", stats.distance_m != null ? `${(stats.distance_m / 1000).toFixed(1)} km` : "–"],
+    ["Top speed", stats.top_speed_kmh ? `${stats.top_speed_kmh.toFixed(1)} km/h` : "–"],
+    ["Shots", stats.shots],
+    ["Goals", stats.goals],
+  ];
+  return (
+    <div className="rise pointer-events-none absolute right-[2%] top-[4%] w-[190px] overflow-hidden rounded-lg bg-[rgba(7,11,20,.86)] ring-1 ring-white/10 backdrop-blur-md">
+      <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: `3px solid ${color}` }}>
+        <span className="text-[13px] font-semibold">{stats.name}</span>
+        <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-muted">{stats.team}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-2.5">
+        {items.map(([k, v]) => (
+          <div key={k as string}>
+            <div className="font-mono text-[13px]">{v}</div>
+            <div className="text-[9px] uppercase tracking-[0.12em] text-muted">{k}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

@@ -13,7 +13,8 @@ from collections.abc import AsyncIterator, Iterable
 
 from pitchside import overlays
 from pitchside.agents.pipeline import Batch, Job, build_agents, build_workflow
-from pitchside.stats.state import MatchState
+from pitchside.sim.league import Fixture, LeagueState
+from pitchside.stats.state import Evidence, MatchState, Moment
 from pitchside.tools import StatsTools
 
 WORKERS = 3  # moments handled in parallel during live play
@@ -32,9 +33,16 @@ class Broadcast:
         state: MatchState | None = None,
         deep_client=None,
         analyst_tools: list | None = None,
+        league: LeagueState | None = None,
     ) -> None:
         self.events = list(events)
         self.state = state or MatchState()
+        # The rest of the matchday: other fixtures play alongside and move the live table.
+        self.league = league
+        self.state.league = league
+        self.featured = next(iter(league.fixtures)) if league else None
+        self.others: list[Fixture] = list(league.fixtures.values())[1:] if league else []
+        self.cursor = {f.id: 0 for f in self.others}
         self.tools = StatsTools(self.state)
         self.agents = build_agents(client, analyst_tools or self.tools.agent_tools(), deep_client)
         self.workflow = build_workflow(self.agents)
@@ -48,8 +56,67 @@ class Broadcast:
 
     @property
     def clubs(self) -> dict[str, str]:
+        if self.league:
+            return dict(self.league.names)
         meta = self.state.meta
         return {meta[s]["code"]: meta[s]["name"] for s in ("home", "away")}
+
+    def _job(self, m: Moment) -> Job:
+        return Job(
+            moment=m,
+            sheet={},
+            names=self.state.names,
+            clubs=self.clubs,
+            profiles=self.profiles,
+            langs=self.langs,
+            players=[p for p in {m.player, *(e.player for e in m.evidence), *self.followed} if p],
+        )
+
+    def _league_moment(self, f: Fixture, ev: dict, before: dict[str, int]) -> Moment:
+        """A goal elsewhere, with what it does to the live table."""
+        lg = self.league
+        after = {r["code"]: r["pos"] for r in lg.table()}
+        score = f"{f.home} {f.score[f.home]}-{f.score[f.away]} {f.away}"
+        evidence = [
+            Evidence("score_elsewhere", score),
+            Evidence("other_match_minute", ev.get("minute", 0)),
+            Evidence("live_position", after[ev["team"]], ev["team"]),
+        ]
+        moved = []
+        for code in (f.home, f.away, *self.state.teams):
+            if after[code] != before[code] and code not in moved:
+                moved.append(code)
+                evidence += [
+                    Evidence("live_position", after[code], code),
+                    Evidence("position_before", before[code], code),
+                ]
+        featured_moved = any(c in self.state.teams for c in moved)
+        return Moment(
+            id=f"lg-{f.id}-{ev['event_id']}",
+            type="around_the_league",
+            t_ms=self.state.t_ms,
+            minute=self.state.minute,
+            team=ev["team"],
+            player=None,
+            significance=62 if featured_moved else 50,
+            summary=f"Elsewhere: {lg.names[f.home]} {f.score[f.home]}-{f.score[f.away]} {lg.names[f.away]}",
+            evidence=evidence,
+        )
+
+    def _advance_league(self, t_ms: int) -> tuple[list[Moment], bool]:
+        """Play the other fixtures up to t_ms. Returns new moments and whether any score changed."""
+        moments, changed = [], False
+        for f in self.others:
+            i = self.cursor[f.id]
+            while i < len(f.events) and f.events[i]["t_ms"] <= t_ms:
+                e = f.events[i]
+                before = {r["code"]: r["pos"] for r in self.league.table()}
+                if self.league.apply(f.id, e):
+                    changed = True
+                    moments.append(self._league_moment(f, e, before))
+                i += 1
+            self.cursor[f.id] = i
+        return moments, changed
 
     async def run(self, speed: float | None = None) -> AsyncIterator[dict]:
         """speed=None runs as fast as possible and waits for the agents at every batch, so runs are
@@ -72,7 +139,19 @@ class Broadcast:
                     await asyncio.sleep(wait)
 
             moments = self.state.ingest(ev)
+            league_changed = False
+            if self.league and ev["type"] != "match_start":
+                # When our match ends, let the other fixtures finish their stoppage time too.
+                until = 10**9 if ev["type"] == "match_end" else ev["t_ms"]
+                elsewhere, league_changed = self._advance_league(until)
+                league_changed |= self.league.apply(self.featured, ev)
+                moments = [*moments, *elsewhere]
             yield {"kind": "event", "event": ev}
+            if self.league and (
+                league_changed
+                or ev["type"] in {"physical", "period_start", "period_end", "match_end"}
+            ):
+                yield {"kind": "league", "league": self.league.snapshot()}
             if ev["type"] == "sprint":
                 name = self.state.name(ev["player"])
                 yield {"kind": "overlay", "overlay": overlays.player_tag(ev["match_id"], ev, name)}
@@ -81,23 +160,11 @@ class Broadcast:
                 or ev["event_id"] % 25 == 0
             ):
                 yield {"kind": "snapshot", "snapshot": self.state.snapshot()}
+                for pid in self.followed:
+                    yield {"kind": "player", "player": self.state.player_summary(pid)}
 
             for m in moments:
-                self.pending.append(
-                    Job(
-                        moment=m,
-                        sheet={},
-                        names=self.state.names,
-                        clubs=self.clubs,
-                        profiles=self.profiles,
-                        langs=self.langs,
-                        players=[
-                            p
-                            for p in {m.player, *(e.player for e in m.evidence), *self.followed}
-                            if p
-                        ],
-                    )
-                )
+                self.pending.append(self._job(m))
             urgent = any(j.moment.type in URGENT for j in self.pending)
             due_now = ev["t_ms"] - self.last_batch_ms >= BATCH_EVERY_MS or ev["type"] == "match_end"
             if self.pending and (urgent or due_now):

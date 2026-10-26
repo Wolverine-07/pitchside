@@ -278,67 +278,67 @@ class TemplateExec(Executor):
 
 
 class PersonaExec(Executor):
+    """Rewrites the verified caption for each viewer. Rejected rewrites get one retry with the reasons."""
+
     def __init__(self, agent: Agent | None) -> None:
         super().__init__(id="persona")
         self.agent = agent
 
+    @staticmethod
+    def _problems(job: Job, profile: str, v: dict | None) -> list[str]:
+        if not v or not v.get("line"):
+            return ["no rewrite"]
+        text = f"{v.get('headline', '')}. {v.get('line', '')}"
+        check = verify(text, job.facts(profile), job.names, live=False)
+        return check.problems or check_audience(text, profile)
+
+    def _prompt(
+        self, job: Job, profiles: list[str], fix: dict[str, list[str]] | None = None
+    ) -> str:
+        followed = [p.split(":", 1)[1] for p in profiles if p.startswith("player:")]
+        body = {
+            "caption": job.caption,
+            "profiles": profiles,
+            "facts": job.cited + [e.__dict__ for e in job.moment.evidence],
+            "match_minute_now": f"{job.moment.minute} of 90",
+            "clubs": job.clubs,
+            "followed_players": {
+                pid: {"name": job.names.get(pid), "stats": job.sheet.get("players", {}).get(pid)}
+                for pid in followed
+            },
+        }
+        if fix:
+            body["verifier_rejected_these_rewrites_because"] = fix
+        return json.dumps(body)
+
     @handler
     async def personalise(self, job: Job, ctx: WorkflowContext[Job]) -> None:
         t0 = time.perf_counter()
-        base = job.caption
-        wanted = [p for p in job.profiles if p != "casual"] if job.fallback else job.profiles
-        reply = (
-            await ask(
-                self.agent,
-                json.dumps(
-                    {
-                        "caption": base,
-                        "profiles": wanted,
-                        "facts": job.cited + [e.__dict__ for e in job.moment.evidence],
-                        "clubs": job.clubs,
-                        "followed_players": {
-                            p.split(":")[1]: {
-                                "name": job.names.get(p.split(":")[1]),
-                                "stats": job.sheet.get("players", {}).get(p.split(":")[1]),
-                            }
-                            for p in wanted
-                            if p.startswith("player:")
-                        },
-                    }
-                ),
-            )
-            if wanted
-            else None
-        )
+        wanted = [p for p in job.profiles if p != "casual"] if job.fallback else list(job.profiles)
+        reply = await ask(self.agent, self._prompt(job, wanted)) if wanted else None
         variants = (reply or {}).get("variants", {})
-        kept, why = 0, []
-        for profile in job.profiles:
-            v = variants.get(profile)
-            check = (
-                verify(
-                    f"{v.get('headline', '')}. {v.get('line', '')}",
-                    job.facts(profile),
-                    job.names,
-                    live=False,
-                )
-                if v
-                else None
+        problems = {p: self._problems(job, p, variants.get(p)) for p in wanted}
+        failed = {p: pr for p, pr in problems.items() if pr}
+
+        retried = 0
+        if failed and reply:
+            retry = await ask(self.agent, self._prompt(job, list(failed), failed))
+            for p, v in ((retry or {}).get("variants") or {}).items():
+                if p in failed and not self._problems(job, p, v):
+                    variants[p], retried = v, retried + 1
+                    del failed[p]
+
+        for p in job.profiles:
+            job.variants[p] = job.caption if p in failed or p not in wanted else variants[p]
+        kept = len(wanted) - len(failed)
+        note = f"{kept}/{len(job.profiles)} profiles rewritten"
+        if retried:
+            note += f" ({retried} fixed on retry)"
+        if failed:
+            note += "; kept base for " + "; ".join(
+                f"{p}: {pr[0]}" for p, pr in list(failed.items())[:2]
             )
-            if check:
-                audience = check_audience(f"{v.get('headline', '')}. {v.get('line', '')}", profile)
-                if audience:
-                    check.ok, check.problems = False, audience
-            if check:
-                job.variants[profile] = v
-                kept += 1
-            else:
-                job.variants[profile] = base
-                if check is not None:
-                    why.append(f"{profile}: {check.problems[0]}")
         status = "ok" if reply else ("fallback" if self.agent else "rule")
-        note = f"{kept}/{len(job.profiles)} profiles rewritten" + (
-            f"; kept base for {'; '.join(why[:2])}" if why else ""
-        )
         job.log("persona", t0, status, note)
         await ctx.send_message(job)
 
@@ -403,6 +403,7 @@ def headline_for(m: Moment, clubs: dict[str, str]) -> str:
         "card": "Card shown",
         "player_speed": "Top speed",
         "milestone": "Milestone",
+        "around_the_league": "Around the league",
     }.get(m.type, m.type.replace("_", " ").title())
 
 

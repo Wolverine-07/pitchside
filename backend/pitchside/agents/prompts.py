@@ -33,6 +33,8 @@ Rules:
 - Air at most two items per call. Prefer high significance, but keep variety: skip a moment of the same type
   as one aired in the last three minutes unless it is clearly bigger.
 - Hold minor milestones and speed readings unless nothing else is happening.
+- "around_the_league" moments are goals in the other matchday fixtures. Air them when they move one of
+  the two clubs on the pitch up or down the live table, or put a rival above them; otherwise hold them.
 
 Reply with JSON only: {"air": ["<moment id>", ...], "reason": "<one short sentence>"}"""
 
@@ -41,7 +43,9 @@ Explain WHY it matters, not just that it happened: the tactical cause and what i
 control vs chaos, tempo, momentum, tiredness, substitutions, game state).
 
 Use the tools to look up the numbers you need: at most two tool calls, made in parallel, usually
-team_metrics for the relevant window and one of player_summary or chaos_index. Never guess or round a number yourself: every number you
+team_metrics for the relevant window and one of player_summary, chaos_index or league_table.
+For goals and around-the-league moments, league_table gives the live standings: say what the result
+does to the table ("as it stands, Kingsport go 2nd"). Positions are live, never final. Never guess or round a number yourself: every number you
 cite must be copied exactly from a tool result or from the moment's evidence, with the metric name,
 team and window it came from.
 

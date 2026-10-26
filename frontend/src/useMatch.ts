@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import type { MatchEvent, Meta, Overlay, Snapshot, Trace } from "./types";
+import type { Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 
 export type Settings = {
   seed: number;
@@ -27,6 +27,11 @@ export type MatchView = {
   feed: MatchEvent[];
   onPitch: string[];
   pending: { id: string; type: string; minute: number }[];
+  league: League | null;
+  shots: Shot[];
+  goals: Goal[];
+  lastGoal: (Goal & { at: number }) | null;
+  player: PlayerStats | null;
 };
 
 const EMPTY: MatchView = {
@@ -44,6 +49,11 @@ const EMPTY: MatchView = {
   feed: [],
   onPitch: [],
   pending: [],
+  league: null,
+  shots: [],
+  goals: [],
+  lastGoal: null,
+  player: null,
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -112,6 +122,15 @@ function reduce(v: MatchView, item: any): MatchView {
         next.trail = [...v.trail.slice(-7), { ...toPitch(v.meta, e.team, end.x, end.y), team: e.team, type: e.type }];
       }
       if (FEED.has(e.type)) next.feed = [e, ...v.feed].slice(0, 30);
+      if (e.type === "shot" && e.x !== undefined) {
+        const p = toPitch(v.meta, e.team, e.x, e.y!);
+        next.shots = [...v.shots, { ...p, team: e.team!, outcome: e.outcome!, xg: (e as any).xg, minute: e.minute, player: e.player! }];
+      }
+      if (e.type === "goal") {
+        const g = { team: e.team!, player: e.player!, minute: e.minute, added: e.added };
+        next.goals = [...v.goals, g];
+        next.lastGoal = { ...g, at: Date.now() };
+      }
       if (e.type === "substitution" && e.player)
         next.onPitch = v.onPitch.map((id) => (id === e.player ? (e as any).player_on : id));
       if (e.type === "card" && (e as any).card === "red") next.onPitch = v.onPitch.filter((id) => id !== e.player);
@@ -131,6 +150,10 @@ function reduce(v: MatchView, item: any): MatchView {
       if (o.type === "player_tag") return { ...v, tags: [...v.tags.slice(-4), o] };
       return { ...v, cards: [...v.cards, o] };
     }
+    case "league":
+      return { ...v, league: item.league };
+    case "player":
+      return { ...v, player: item.player };
     case "pending":
       return { ...v, pending: [...v.pending, ...item.moments] };
     case "trace":

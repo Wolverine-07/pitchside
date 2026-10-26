@@ -75,3 +75,45 @@ body {
   width: min(100cqw, calc(100cqh * 111 / 74));
   aspect-ratio: 111 / 74;
 }
+
+@keyframes goal-flash {
+  0% {
+    opacity: 0;
+    background: rgba(0, 0, 0, 0);
+  }
+  12% {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  80% {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    opacity: 0;
+    background: rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes goal-word {
+  0% {
+    transform: scale(0.6);
+    letter-spacing: 0.2em;
+  }
+  25% {
+    transform: scale(1.08);
+  }
+  40% {
+    transform: scale(1);
+    letter-spacing: -0.01em;
+  }
+}
+
+.goal-flash {
+  animation: goal-flash 3.2s ease-out forwards;
+  container-type: inline-size;
+}
+
+.goal-word {
+  animation: goal-word 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}

@@ -164,6 +164,8 @@ def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
     for e in evidence:
         if e.get("metric") == metric and (team is None or e.get("team") in (None, team)):
             return e.get("value")
+    if metric in ("live_position", "position", "points", "gd") and team in sheet.get("league", {}):
+        return sheet["league"][team].get("live_position" if metric == "position" else metric)
     if player and player in sheet.get("players", {}):
         return sheet["players"][player].get(metric)
     snap = sheet.get("snapshot", {})
@@ -180,8 +182,9 @@ def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
 
 END_OF_MATCH = re.compile(
     r"\b(closing (minutes|stages)|final (minutes|five|stages|whistle|moments)|dying (minutes|seconds)|"
-    r"frantic finish|with (just )?minutes (left|to go)|late in the (game|match)|"
-    r"late(?! (tackle|challenge|run|arrival|foul|booking|card)))\b",
+    r"frantic finish|with (just )?minutes (left|to go)|late in the (game|match)|late on|"
+    r"late (rally|surge|drama|chaos|push|scramble|pressure|show|charge|siege|winner|equaliser)|"
+    r"(rally|surge|push|control|chaos|drama|pressure) late)\b",
     re.IGNORECASE,
 )
 SINGULAR_CLUB = re.compile(

@@ -66,6 +66,7 @@ class MatchState:
         self.moments: list[Moment] = []
         self._cooldown: dict[tuple[str, str | None], int] = {}
         self._chaos_high = False
+        self.league = None  # LeagueState when the rest of the matchday is playing
 
     # ---------- ingest ----------
 

@@ -26,6 +26,7 @@ from pitchside import speech, telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
+from pitchside.sim.league import FIXTURES, LeagueState, clubs, matchday
 from pitchside.stats.state import MatchState
 from pitchside.tools import MATCH_HEADER, build_mcp_server
 
@@ -98,8 +99,20 @@ async def speak(text: str, lang: str = "en") -> Response:
 
 @app.get("/api/meta")
 def match_meta(seed: int = 16, storyline: str = "comeback") -> dict:
-    """Clubs, rosters and venue, so viewers can pick a club and player before kick-off."""
-    return simulate(seed, storyline)[0]["data"]
+    """Clubs, rosters, venue and the league going into the matchday, so viewers can choose before kick-off."""
+    meta = simulate(seed, storyline)[0]["data"]
+    meta["league"] = league_for([]).snapshot()
+    meta["fixtures"] = [{"home": h, "away": a} for h, a in FIXTURES]
+    return meta
+
+
+def league_for(fixtures) -> LeagueState:
+    all_clubs = clubs()
+    return LeagueState(
+        fixtures,
+        {c: k.name for c, k in all_clubs.items()},
+        {c: k.colors[0] for c, k in all_clubs.items()},
+    )
 
 
 @contextlib.asynccontextmanager
@@ -112,13 +125,15 @@ async def broadcast(seed: int, storyline: str, profiles: list[str], langs: list[
         url=f"http://127.0.0.1:{os.getenv('PORT', '8000')}/mcp/",
         static_headers={MATCH_HEADER: key},
     )
+    fixtures = matchday(seed, storyline)
     b = Broadcast(
-        simulate(seed, storyline),
+        fixtures[0].events,
         c["fast"],
         profiles,
         langs,
         deep_client=c["deep"],
         analyst_tools=[stats_mcp] if c["fast"] else None,
+        league=league_for(fixtures),
     )
     LIVE[key] = b.state
     try:

@@ -4,11 +4,15 @@ import {
   AgentTrace,
   CommentaryFeed,
   ControlGauge,
+  GoalBanner,
+  LeagueTable,
   LowerThird,
   MatchStats,
   Momentum,
   Pitch,
+  PlayerCard,
   Scoreboard,
+  ScoresTicker,
   momentLabel,
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
@@ -75,7 +79,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("casual");
   const [lang, setLang] = useState<Lang>("en");
   const [voice, setVoice] = useState(false);
-  const [tab, setTab] = useState<"commentary" | "agents">("commentary");
+  const [tab, setTab] = useState<"commentary" | "agents" | "league">("commentary");
 
   useEffect(() => {
     fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}`)
@@ -89,7 +93,7 @@ export default function App() {
     const q = new URLSearchParams(location.search);
     if (q.get("mode")) setMode(q.get("mode") as Mode);
     if (q.get("lang")) setLang(q.get("lang") as Lang);
-    if (q.get("tab") === "agents") setTab("agents");
+    if (q.get("tab") === "agents" || q.get("tab") === "league") setTab(q.get("tab") as "agents" | "league");
     if (q.has("kickoff") && meta && view.status === "idle") {
       start({ ...settings, speed: Number(q.get("speed") ?? settings.speed) });
     }
@@ -143,12 +147,14 @@ export default function App() {
         )}
       </header>
 
+      {started && <ScoresTicker league={view.league} />}
+
       {!started ? (
         <Setup meta={meta} settings={settings} setSettings={setSettings} onStart={() => start(settings)} />
       ) : (
         <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_400px]">
           <section className="flex min-h-0 flex-col gap-3">
-            <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} />
+            <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} goals={view.goals} />
             <div className="pitch-stage grid min-h-0 flex-1 place-items-center">
               <Pitch
                 meta={m}
@@ -157,8 +163,11 @@ export default function App() {
                 clockMs={view.clock.t_ms}
                 onPitch={view.onPitch}
                 focus={mode === "player" ? settings.player : undefined}
+                shots={mode === "analyst" ? view.shots : []}
               >
                 <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
+                {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
+                <GoalBanner goal={view.lastGoal} meta={m} />
               </Pitch>
             </div>
             <div className="grid h-[132px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
@@ -174,6 +183,7 @@ export default function App() {
                 [
                   ["commentary", "Commentary", myCards.length],
                   ["agents", "Agents", view.traces.length],
+                  ["league", "League", view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
                 ] as const
               ).map(([id, label, n]) => (
                 <button
@@ -195,6 +205,8 @@ export default function App() {
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {tab === "commentary" ? (
                 <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+              ) : tab === "league" ? (
+                <LeagueTable league={view.league ?? m?.league ?? null} highlight={m ? [m.home.code, m.away.code] : []} />
               ) : (
                 <>
                   <AgentSummary traces={view.traces} />
@@ -210,6 +222,12 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function ordinal(n?: number) {
+  if (!n) return "";
+  const s = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return `${n}${s}`;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -246,6 +264,13 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
                   {meta.home.name} <span className="text-muted">v</span> {meta.away.name}
                 </div>
                 <div className="text-xs text-muted">{meta.venue} · synthetic match, made-up clubs and players</div>
+                {meta.league && (
+                  <div className="mt-1 text-xs text-soft">
+                    {meta.league.league} · Matchday {meta.league.matchday} ·{" "}
+                    {ordinal(meta.league.table.find((r) => r.code === meta.home.code)?.pos)} v{" "}
+                    {ordinal(meta.league.table.find((r) => r.code === meta.away.code)?.pos)} · three other games at the same time
+                  </div>
+                )}
               </div>
               <span className="grid h-11 w-11 place-items-center rounded-full text-xs font-extrabold" style={{ background: meta.away.colors[0] }}>
                 {meta.away.code}

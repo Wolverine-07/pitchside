@@ -58,7 +58,24 @@ def overlay(
     }
 
 
-CLUB_NAMES = ("Kingsport City", "Riverside Athletic", "Kingsport", "Riverside")
+CLUB_NAMES = (
+    "Kingsport City",
+    "Riverside Athletic",
+    "Ashvale United",
+    "Brightwater FC",
+    "Coldharbour Town",
+    "Dunmore Albion",
+    "Eastmere Wanderers",
+    "Fairhaven Forest",
+    "Kingsport",
+    "Riverside",
+    "Ashvale",
+    "Brightwater",
+    "Coldharbour",
+    "Dunmore",
+    "Eastmere",
+    "Fairhaven",
+)
 
 
 def tidy(text: str) -> str:
