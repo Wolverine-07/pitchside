@@ -96,6 +96,13 @@ class Job:
 
 
 @dataclass
+class EnglishReady:
+    """Intermediate output: the English captions are verified and can air before translations finish."""
+
+    job: Job
+
+
+@dataclass
 class Batch:
     jobs: list[Job]
     aired: list[dict]  # recent airtime log: {"type", "minute", "moment_id"}
@@ -323,7 +330,7 @@ class PersonaExec(Executor):
         return json.dumps(body)
 
     @handler
-    async def personalise(self, job: Job, ctx: WorkflowContext[Job]) -> None:
+    async def personalise(self, job: Job, ctx: WorkflowContext[Job, EnglishReady]) -> None:
         t0 = time.perf_counter()
         wanted = [p for p in job.profiles if p != "casual"] if job.fallback else list(job.profiles)
         reply = await ask(self.agent, self._prompt(job, wanted)) if wanted else None
@@ -351,6 +358,7 @@ class PersonaExec(Executor):
             )
         status = "ok" if reply else ("fallback" if self.agent else "rule")
         job.log("persona", t0, status, note)
+        await ctx.yield_output(EnglishReady(job))
         await ctx.send_message(job)
 
 
@@ -446,7 +454,13 @@ def build_workflow(agents: dict[str, Agent | None]):
     persona = PersonaExec(agents["persona"])
     linguist = LinguistExec(agents["linguist"])
     return (
-        WorkflowBuilder(name="pitchside", start_executor=director, max_iterations=200)
+        WorkflowBuilder(
+            name="pitchside",
+            start_executor=director,
+            max_iterations=200,
+            output_from=[linguist],
+            intermediate_output_from=[persona],
+        )
         .add_edge(director, analyst)
         .add_edge(analyst, narrator)
         .add_edge(narrator, verifier)

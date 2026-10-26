@@ -12,7 +12,14 @@ import time
 from collections.abc import AsyncIterator, Iterable
 
 from pitchside import overlays
-from pitchside.agents.pipeline import Batch, Job, build_agents, build_workflow, headline_for
+from pitchside.agents.pipeline import (
+    Batch,
+    EnglishReady,
+    Job,
+    build_agents,
+    build_workflow,
+    headline_for,
+)
 from pitchside.agents.templates import template_line
 from pitchside.sim.league import Fixture, LeagueState
 from pitchside.stats.state import Evidence, MatchState, Moment
@@ -274,28 +281,66 @@ class Broadcast:
         for job in jobs:
             job.sheet = self.tools.fact_sheet(job.players)
             job.recent_lines = list(self.recent_lines)
-        # A fresh workflow run per batch, so parallel workers never share run state.
-        result = await build_workflow(self.agents).run(Batch(jobs, self.aired))
-        for job in result.get_outputs():
+        # A fresh workflow run per batch, so parallel workers never share run state. Streaming lets
+        # English captions air as soon as Persona finishes, before the translations come back.
+        sent_en: set[str] = set()
+        stream = build_workflow(self.agents).run(Batch(jobs, self.aired), stream=True)
+        async for event in stream:
+            if event.type not in ("intermediate", "output"):
+                continue
+            if isinstance(event.data, EnglishReady):
+                job = event.data.job
+                sent_en.add(job.moment.id)
+                self.aired.append(
+                    {
+                        "type": job.moment.type,
+                        "minute": job.moment.minute,
+                        "moment_id": job.moment.id,
+                    }
+                )
+                self.recent_lines.append(job.caption["line"])
+                for item in self._cards(job, match_id, {"en": job.variants}):
+                    yield item
+                continue
+            job = event.data
+            if job.moment.id not in sent_en:
+                self.aired.append(
+                    {
+                        "type": job.moment.type,
+                        "minute": job.moment.minute,
+                        "moment_id": job.moment.id,
+                    }
+                )
+                self.recent_lines.append(job.caption["line"])
+            langs = {
+                k: v
+                for k, v in job.translations.items()
+                if k != "en" or job.moment.id not in sent_en
+            }
+            for item in self._cards(job, match_id, langs):
+                yield item
             m = job.moment
-            self.aired.append({"type": m.type, "minute": m.minute, "moment_id": m.id})
-            self.recent_lines.append(job.caption["line"])
-            agents = [step["agent"] for step in job.trace]
-            start = max(self.state.t_ms, m.t_ms + BROADCAST_DELAY_MS)
-            for lang, by_profile in job.translations.items():
-                for profile, cap in by_profile.items():
-                    card = overlays.insight_card(
-                        m,
-                        match_id,
-                        cap["headline"],
-                        cap["line"],
-                        lang,
-                        f"{profile}:{lang}",
-                        start_t_ms=start,
-                        agents=agents,
-                        verified=True,
-                        fallback=job.fallback,
-                    )
-                    yield {"kind": "overlay", "minute": m.minute, "overlay": card}
             trace = {"moment_id": m.id, "minute": m.minute, "type": m.type, "steps": job.trace}
             yield {"kind": "trace", "trace": trace}
+
+    def _cards(self, job: Job, match_id: str, by_lang: dict[str, dict]) -> list[dict]:
+        m = job.moment
+        agents = [step["agent"] for step in job.trace]
+        start = max(self.state.t_ms, m.t_ms + BROADCAST_DELAY_MS)
+        out = []
+        for lang, by_profile in by_lang.items():
+            for profile, cap in by_profile.items():
+                card = overlays.insight_card(
+                    m,
+                    match_id,
+                    cap["headline"],
+                    cap["line"],
+                    lang,
+                    f"{profile}:{lang}",
+                    start_t_ms=start,
+                    agents=agents,
+                    verified=True,
+                    fallback=job.fallback,
+                )
+                out.append({"kind": "overlay", "minute": m.minute, "overlay": card})
+        return out
