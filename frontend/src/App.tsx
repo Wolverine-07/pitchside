@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AgentSummary,
   AskPanel,
+  type Decision,
+  ProducerQueue,
   AgentTrace,
   CommentaryFeed,
   ControlGauge,
@@ -82,7 +84,9 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("casual");
   const [lang, setLang] = useState<Lang>("en");
   const [voice, setVoice] = useState(false);
-  const [tab, setTab] = useState<"commentary" | "ask" | "agents" | "league">("commentary");
+  const [tab, setTab] = useState<"producer" | "commentary" | "ask" | "agents" | "league">("commentary");
+  const [studio, setStudio] = useState(false);
+  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
 
   useEffect(() => {
     fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}`)
@@ -106,8 +110,18 @@ export default function App() {
   const profile = mode === "club" ? `club:${settings.club}` : mode === "player" ? `player:${settings.player}` : mode;
   const key = `${profile}:${lang}`;
   const myCards = useMemo(() => view.cards.filter((c) => c.profile_key === key), [view.cards, key]);
-  const latest = myCards.filter((c) => !isRecap(c)).at(-1);
-  const latestRecap = myCards.filter(isRecap).at(-1);
+  // In studio mode only approved captions air, with the producer's edits applied.
+  const airable = studio
+    ? myCards
+        .filter((c) => decisions[c.overlay_id]?.status === "approved")
+        .map((c) => {
+          const d = decisions[c.overlay_id];
+          return { ...c, content: { ...c.content, headline: d.headline ?? c.content.headline, body: d.body ?? c.content.body } };
+        })
+    : myCards;
+  const latest = airable.filter((c) => !isRecap(c)).at(-1);
+  const awaiting = myCards.filter((c) => !decisions[c.overlay_id]).length;
+  const latestRecap = airable.filter(isRecap).at(-1);
   // Each goal replays its build-up once the banner has gone; feed buttons replay any goal again.
   const [replayId, setReplayId] = useState<number | null>(null);
   const lastReplay = view.replays.at(-1);
@@ -140,6 +154,16 @@ export default function App() {
           <div className="ml-auto flex items-center gap-4">
             <Segmented label="View" items={MODES} value={mode} onChange={setMode} />
             <Segmented label="Language" items={LANGS} value={lang} onChange={setLang} />
+            <button
+              onClick={() => {
+                setStudio((s) => !s);
+                setTab(studio ? "commentary" : "producer");
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${studio ? "border-warn bg-warn/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
+              title="Studio mode: approve or edit every caption before it airs"
+            >
+              Studio
+            </button>
             <button
               onClick={() => setVoice((v) => !v)}
               className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${voice ? "border-accent bg-accent/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
@@ -201,6 +225,7 @@ export default function App() {
             <div className="flex shrink-0 gap-1 border-b border-line p-1.5">
               {(
                 [
+                  ...(studio ? ([["producer", "Producer", awaiting]] as const) : []),
                   ["commentary", "Commentary", myCards.length],
                   ["ask", "Ask", null],
                   ["agents", "Agents", view.traces.length],
@@ -210,7 +235,7 @@ export default function App() {
                 <button
                   key={id}
                   onClick={() => setTab(id)}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-[13px] font-semibold transition-colors ${tab === id ? "bg-panel-2 text-white" : "text-muted hover:text-soft"}`}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-1 py-2 text-[12px] font-semibold transition-colors ${tab === id ? "bg-panel-2 text-white" : "text-muted hover:text-soft"}`}
                 >
                   {label}
                   {n !== null && <span className="rounded-full bg-white/5 px-1.5 font-mono text-[11px] text-soft">{n}</span>}
@@ -224,7 +249,15 @@ export default function App() {
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {tab === "commentary" ? (
+              {tab === "producer" ? (
+                <ProducerQueue
+                  cards={myCards}
+                  decisions={decisions}
+                  decide={(id, d) => setDecisions((x) => ({ ...x, [id]: d }))}
+                  matchKey={view.matchKey}
+                  meta={m}
+                />
+              ) : tab === "commentary" ? (
                 <>
                   {view.replays.length > 0 && (
                     <div className="mb-3 flex flex-wrap items-center gap-1.5">

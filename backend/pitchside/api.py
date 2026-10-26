@@ -109,6 +109,35 @@ async def ask_pitchside(body: dict) -> dict:
     )
 
 
+@app.post("/api/verify")
+def verify_text(body: dict) -> dict:
+    """Studio mode: check a producer's edited caption against the live match before it airs."""
+    from pitchside.agents.verify import check_context, check_names, check_numbers, check_style
+    from pitchside.tools import StatsTools
+
+    state = LIVE.get(body.get("match_key", ""))
+    if state is None:
+        return {"ok": False, "problems": ["that match isn't live any more"]}
+    text = str(body.get("text", ""))[:600]
+    sheet = StatsTools(state).fact_sheet(list(state.names))
+    goals = [
+        {"minute": e["minute"], "team": e["team"]} for e in state.events if e["type"] == "goal"
+    ]
+    facts = {
+        "sheet": sheet,
+        "goals": goals,
+        "minute": state.minute,
+        "moment": {"minute": state.minute},
+    }
+    problems = (
+        check_numbers(text, facts)
+        + check_names(text, {"players": list(state.names)}, state.names)
+        + check_style(text, live=False)
+        + check_context(text, state.minute, {g["minute"] for g in goals})
+    )
+    return {"ok": not problems, "problems": problems}
+
+
 @app.get("/api/speak")
 async def speak(text: str, lang: str = "en") -> Response:
     """A caption read aloud by an Azure AI Speech neural voice (English, Hindi or Spanish)."""

@@ -1360,3 +1360,132 @@ function ReplayLayer({ replay, meta }: { replay: Replay; meta: Meta | null }) {
     </g>
   );
 }
+
+/* ---------- studio (producer) mode ---------- */
+
+export type Decision = { status: "approved" | "rejected"; headline?: string; body?: string; edited?: boolean };
+
+export function ProducerQueue({
+  cards,
+  decisions,
+  decide,
+  matchKey,
+  meta,
+}: {
+  cards: Overlay[];
+  decisions: Record<string, Decision>;
+  decide: (id: string, d: Decision) => void;
+  matchKey: string | null;
+  meta: Meta | null;
+}) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState({ headline: "", body: "" });
+  const [problems, setProblems] = useState<string[]>([]);
+  const [checking, setChecking] = useState(false);
+  if (!cards.length) return <Empty text="AI captions wait here for your approval before they go on air." />;
+
+  async function approveEdit(id: string) {
+    setChecking(true);
+    const r = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_key: matchKey, text: `${draft.headline}. ${draft.body}` }),
+    })
+      .then((x) => x.json())
+      .catch(() => ({ ok: false, problems: ["couldn't reach the verifier"] }));
+    setChecking(false);
+    if (r.ok) {
+      decide(id, { status: "approved", headline: draft.headline, body: draft.body, edited: true });
+      setEditing(null);
+      setProblems([]);
+    } else setProblems(r.problems);
+  }
+
+  return (
+    <div>
+      <div className="mb-3 text-[12px] text-muted">
+        Studio mode: nothing airs until you approve it. Edits are checked by the Verifier against the live match too.
+      </div>
+      <ol className="space-y-2.5">
+        {[...cards].reverse().map((c) => {
+          const d = decisions[c.overlay_id];
+          const minute = Math.floor(c.anchor_t_ms / 60000) + 1;
+          const isEditing = editing === c.overlay_id;
+          return (
+            <li
+              key={c.overlay_id}
+              className={`rise rounded-lg border p-3 ${!d ? "border-accent/40 bg-accent/5" : d.status === "approved" ? "border-good/30 bg-good/5" : "border-line bg-panel-2/40 opacity-60"}`}
+            >
+              <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                <span className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-soft">{minute}'</span>
+                <span style={{ color: clubColor(meta, c.content.team) }}>{momentLabel(c.content.moment_type)}</span>
+                <span className={`ml-auto ${!d ? "text-accent" : d.status === "approved" ? "text-good" : "text-muted"}`}>
+                  {!d ? "awaiting approval" : d.status === "approved" ? (d.edited ? "on air · edited" : "on air") : "rejected"}
+                </span>
+              </div>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <input
+                    value={draft.headline}
+                    onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
+                    className="w-full rounded-md border border-line bg-ink px-2 py-1.5 text-[13px] font-semibold outline-none focus:border-accent"
+                  />
+                  <textarea
+                    value={draft.body}
+                    rows={3}
+                    onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                    className="w-full resize-none rounded-md border border-line bg-ink px-2 py-1.5 text-[13px] outline-none focus:border-accent"
+                  />
+                  {problems.length > 0 && (
+                    <ul className="space-y-0.5 text-[12px] text-bad">
+                      {problems.map((p) => (
+                        <li key={p}>✕ {p}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => approveEdit(c.overlay_id)}
+                      disabled={checking}
+                      className="rounded-md bg-good px-3 py-1 text-[12px] font-semibold text-ink disabled:opacity-50"
+                    >
+                      {checking ? "Checking…" : "Verify & put on air"}
+                    </button>
+                    <button onClick={() => setEditing(null)} className="rounded-md border border-line px-3 py-1 text-[12px] text-soft">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-[14px] font-semibold leading-snug">{d?.headline ?? c.content.headline}</div>
+                  <div className="mt-0.5 text-[13px] leading-snug text-soft">{d?.body ?? c.content.body}</div>
+                  {!d && (
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => decide(c.overlay_id, { status: "approved" })} className="rounded-md bg-good px-3 py-1 text-[12px] font-semibold text-ink">
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditing(c.overlay_id);
+                          setDraft({ headline: c.content.headline, body: c.content.body });
+                          setProblems([]);
+                        }}
+                        className="rounded-md border border-line px-3 py-1 text-[12px] text-soft hover:text-white"
+                      >
+                        Edit
+                      </button>
+                      <button onClick={() => decide(c.overlay_id, { status: "rejected" })} className="rounded-md border border-line px-3 py-1 text-[12px] text-muted hover:text-bad">
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
