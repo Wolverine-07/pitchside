@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Wolverine-07/pitchside/schemas/overlay.schema.json",
+  "title": "Pitchside overlay",
+  "description": "A timed graphic that can be drawn over a live match feed. Times use the same clock as event t_ms, so a renderer can sync overlays to video.",
+  "type": "object",
+  "required": ["overlay_id", "match_id", "type", "slot", "anchor_t_ms", "start_t_ms", "duration_ms", "priority", "profile_key", "content", "provenance"],
+  "properties": {
+    "overlay_id": {"type": "string"},
+    "match_id": {"type": "string"},
+    "moment_id": {"type": ["string", "null"]},
+    "type": {"enum": ["score_bug", "player_tag", "stat_strip", "insight_card", "momentum_strip", "recap_card"]},
+    "slot": {"enum": ["top_left", "on_pitch", "bottom", "lower_third", "full"]},
+    "anchor_t_ms": {"type": "integer", "description": "Match time of the moment the overlay is about."},
+    "start_t_ms": {"type": "integer", "description": "When to show it. Usually a few seconds after anchor_t_ms, like a broadcast delay."},
+    "duration_ms": {"type": "integer", "minimum": 0, "description": "0 means persistent until replaced."},
+    "priority": {"type": "integer", "minimum": 0, "maximum": 100, "description": "Higher pre-empts lower in the same slot."},
+    "profile_key": {"type": "string", "description": "Audience, for example 'casual:en' or 'club:RVA:hi'. '*' means everyone."},
+    "content": {"type": "object"},
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "verified": {"type": "boolean", "description": "Agent text is only emitted when true."},
+        "fallback": {"type": "boolean", "description": "True when a template line replaced the agent line."},
+        "agents": {"type": "array", "items": {"type": "string"}},
+        "trace_id": {"type": ["string", "null"]},
+        "source": {"type": "string"}
+      }
+    }
+  }
+}

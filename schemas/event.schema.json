@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Wolverine-07/pitchside/schemas/event.schema.json",
+  "title": "Pitchside synthetic match event",
+  "description": "One event in a synthetic match stream. Coordinates are metres on a 105 x 68 pitch in the acting team's attacking direction: x = 0 is their own goal line, x = 105 the goal they attack.",
+  "type": "object",
+  "required": ["match_id", "event_id", "t_ms", "period", "minute", "type"],
+  "properties": {
+    "match_id": {"type": "string"},
+    "event_id": {"type": "integer", "minimum": 1, "description": "Strictly increasing within a match."},
+    "t_ms": {"type": "integer", "minimum": 0, "description": "Elapsed playing time in milliseconds, including stoppage time. Monotonic."},
+    "period": {"enum": [1, 2]},
+    "minute": {"type": "integer", "minimum": 1, "maximum": 90, "description": "Football minute as shown on a clock."},
+    "added": {"type": "integer", "minimum": 1, "description": "Minute of stoppage time, when in stoppage."},
+    "type": {
+      "enum": [
+        "match_start", "period_start", "pass", "clearance", "carry", "dribble", "pressure", "tackle",
+        "interception", "possession_change", "shot", "goal", "corner", "foul", "card", "substitution",
+        "sprint", "physical", "period_end", "match_end"
+      ]
+    },
+    "team": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "player": {"type": "string", "pattern": "^[A-Z]{3}-\\d{2}$"},
+    "x": {"type": "number", "minimum": 0, "maximum": 105},
+    "y": {"type": "number", "minimum": 0, "maximum": 68},
+    "end_x": {"type": "number", "minimum": 0, "maximum": 105},
+    "end_y": {"type": "number", "minimum": 0, "maximum": 68},
+    "outcome": {"type": "string"},
+    "receiver": {"type": "string"},
+    "under_pressure": {"type": "boolean"},
+    "ball_speed_kmh": {"type": "number"},
+    "length_m": {"type": "number"},
+    "speed_kmh": {"type": "number", "description": "Player speed for carries and sprints."},
+    "xg": {"type": "number", "minimum": 0, "maximum": 1},
+    "shot_speed_kmh": {"type": "number"},
+    "body_part": {"enum": ["foot", "head"]},
+    "assist_player": {"type": "string"},
+    "tags": {"type": "array", "items": {"enum": ["progressive", "line_breaking", "long", "cross", "key_pass"]}},
+    "card": {"enum": ["yellow", "red"]},
+    "player_on": {"type": "string"},
+    "how": {"type": "string", "description": "For possession_change: tackle, interception, throw_in, goal_kick, save, block."},
+    "data": {"type": "object", "description": "Payload for match_start (rosters, venue, seed), physical (distance and top speed per player) and period/match end (score)."}
+  }
+}

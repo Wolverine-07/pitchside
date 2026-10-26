@@ -1,0 +1,183 @@
+"""Deterministic checks the Verifier agent runs before anything goes on air.
+
+Numbers: every number in a line must match a fact the stats engine produced.
+Names: a player named in the line must be one the facts are about.
+Style: no chatbot phrases, no emoji, short enough for a live caption.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "fifteen": 15,
+    "twenty": 20,
+    "once": 1,
+    "twice": 2,
+    "half": None,
+    "first": None,
+    "second": None,
+}
+BANNED = [
+    "delve",
+    "testament to",
+    "it's worth noting",
+    "it is worth noting",
+    "in conclusion",
+    "tapestry",
+    "in the realm of",
+    "game-changer",
+    "showcasing",
+    "a true masterclass",
+    "let's dive",
+    "unleash",
+    "elevate",
+]
+EMOJI = re.compile("[\U0001f300-\U0001faff☀-➿]")
+NUM = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)(?:st|nd|rd|th)?(?![\w])")
+MAX_WORDS_LIVE = 32
+
+
+@dataclass
+class Check:
+    ok: bool
+    problems: list[str] = field(default_factory=list)
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+
+def numbers_in(text: str) -> list[float]:
+    found = [float(n) for n in NUM.findall(text.replace(",", ""))]
+    for word in re.findall(r"[a-z]+", text.lower()):
+        v = NUMBER_WORDS.get(word)
+        if v is not None:
+            found.append(float(v))
+    return found
+
+
+def allowed_numbers(facts: dict) -> set[float]:
+    """Every number the facts contain, plus the obvious ways a commentator restates them."""
+    out: set[float] = set()
+
+    def add(v) -> None:
+        if isinstance(v, bool) or v is None:
+            return
+        if isinstance(v, (int, float)):
+            out.add(round(float(v), 1))
+            out.add(float(round(v)))
+            if isinstance(v, float) and 0 < v < 1:
+                out.add(float(round(v * 100)))  # 0.62 -> 62%
+        elif isinstance(v, str):
+            for n in numbers_in(v):
+                out.add(n)
+        elif isinstance(v, dict):
+            for k, x in v.items():
+                if k in {"window_s"} and isinstance(x, (int, float)):
+                    out.add(float(x))
+                    out.add(float(round(x / 60)))  # 600 s -> 10 minutes
+                add(x)
+        elif isinstance(v, (list, tuple)):
+            for x in v:
+                add(x)
+
+    add(facts)
+    return out
+
+
+def check_numbers(text: str, facts: dict) -> list[str]:
+    allowed = allowed_numbers(facts)
+    problems = []
+    for n in numbers_in(text):
+        if not any(abs(n - a) <= 0.51 for a in allowed):
+            problems.append(f"number {n:g} is not in the stats engine's facts")
+    return problems
+
+
+def check_names(text: str, facts: dict, roster: dict[str, str]) -> list[str]:
+    """roster maps player id -> full name. Named players must be ones the facts mention."""
+    mentioned_ids = set(re.findall(r"[A-Z]{3}-\d{2}", str(facts)))
+    allowed = {roster[i] for i in mentioned_ids if i in roster}
+    problems = []
+    for name in roster.values():
+        surname = name.split()[-1]
+        if re.search(rf"\b{re.escape(surname)}\b", text) and name not in allowed:
+            problems.append(f"{name} is named but is not part of this moment")
+    return problems
+
+
+def check_style(text: str, live: bool = True) -> list[str]:
+    problems = []
+    low = text.lower()
+    for phrase in BANNED:
+        if phrase in low:
+            problems.append(f"chatbot phrase: '{phrase}'")
+    if EMOJI.search(text):
+        problems.append("emoji")
+    if text.count("!") > 1:
+        problems.append("too many exclamation marks")
+    if live and len(text.split()) > MAX_WORDS_LIVE:
+        problems.append(f"too long for a live caption ({len(text.split())} words)")
+    return problems
+
+
+def check_citations(
+    numbers: list[dict], sheet: dict, evidence: list[dict]
+) -> tuple[list[dict], list[str]]:
+    """Keep only the Analyst's cited numbers that match the stats engine exactly, by metric name.
+
+    sheet is StatsTools.fact_sheet(); evidence is the moment's own evidence list.
+    """
+    kept, problems = [], []
+    for n in numbers:
+        metric, value = n.get("metric"), n.get("value")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+        truth = _lookup(metric, n.get("team"), n.get("player"), n.get("window_s"), sheet, evidence)
+        if (
+            truth is not None
+            and isinstance(truth, (int, float))
+            and abs(float(truth) - float(value)) <= 0.051
+        ):
+            kept.append(n)
+        else:
+            problems.append(f"{metric}={value} does not match the stats engine ({truth})")
+    return kept, problems
+
+
+def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
+    for e in evidence:
+        if e.get("metric") == metric and (team is None or e.get("team") in (None, team)):
+            return e.get("value")
+    if player and player in sheet.get("players", {}):
+        return sheet["players"][player].get(metric)
+    snap = sheet.get("snapshot", {})
+    if metric in snap and not isinstance(snap[metric], dict):
+        return snap[metric]
+    if metric in snap and isinstance(snap[metric], dict) and team:
+        return snap[metric].get(team)
+    if metric == "chaos_index":
+        return sheet.get("chaos", {}).get(window_s or 300)
+    if team and team in sheet.get("metrics", {}):
+        return sheet["metrics"][team].get(window_s, {}).get(metric)
+    return None
+
+
+def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) -> Check:
+    problems = (
+        check_numbers(text, facts) + check_names(text, facts, roster) + check_style(text, live)
+    )
+    return Check(not problems, problems)
