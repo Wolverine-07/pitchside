@@ -10,6 +10,7 @@ import asyncio
 import time
 from collections import Counter
 
+from pitchside import telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import simulate
@@ -17,6 +18,7 @@ from pitchside.sim.engine import simulate
 
 async def main(args: argparse.Namespace) -> None:
     cfg = config()
+    telemetry.setup()
     print(f"provider: {cfg.provider} {cfg.model or ''}")
     events = simulate(args.seed, args.storyline)
     c = clients()

@@ -62,4 +62,9 @@ def test_live_mode_streams_events_while_agents_work_in_the_background():
     items = asyncio.run(go())
     kinds = [i["kind"] for i in items]
     assert kinds.count("event") == len(simulate(16, "comeback"))
-    assert kinds.count("trace") == len(run_match() and [i for i in run_match() if i["kind"] == "trace"])
+    traces = [i["trace"] for i in items if i["kind"] == "trace"]
+    assert sum(t["type"] == "goal" for t in traces) == 3  # goals always air, whatever the order
+    assert all(
+        t["steps"][0]["agent"] == "director" and t["steps"][-1]["agent"] == "linguist"
+        for t in traces
+    )

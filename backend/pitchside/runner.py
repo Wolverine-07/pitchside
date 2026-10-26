@@ -16,6 +16,7 @@ from pitchside.agents.pipeline import Batch, Job, build_agents, build_workflow
 from pitchside.stats.state import MatchState
 from pitchside.tools import StatsTools
 
+WORKERS = 3  # moments handled in parallel during live play
 BATCH_EVERY_MS = 20_000  # the Director sees new candidates every 20 s of match time
 URGENT = {"goal", "card", "big_chance"}
 BROADCAST_DELAY_MS = 4_000
@@ -55,7 +56,11 @@ class Broadcast:
         background worker runs the agents, and their overlays arrive as soon as they are ready."""
         out: asyncio.Queue = asyncio.Queue()
         batches: asyncio.Queue = asyncio.Queue()
-        worker = asyncio.create_task(self._worker(batches, out)) if speed else None
+        workers = (
+            [asyncio.create_task(self._worker(batches, out)) for _ in range(WORKERS)]
+            if speed
+            else []
+        )
         wall0, match0 = time.perf_counter(), None
         for ev in self.events:
             if speed and ev["type"] != "match_start":
@@ -92,7 +97,7 @@ class Broadcast:
             due_now = ev["t_ms"] - self.last_batch_ms >= BATCH_EVERY_MS or ev["type"] == "match_end"
             if self.pending and (urgent or due_now):
                 batch, self.pending, self.last_batch_ms = self.pending, [], ev["t_ms"]
-                if worker:
+                if workers:
                     batches.put_nowait((batch, ev["match_id"]))
                 else:
                     async for item in self.flush(batch, ev["match_id"]):
@@ -100,14 +105,16 @@ class Broadcast:
             while not out.empty():
                 yield out.get_nowait()
 
-        if worker:
-            batches.put_nowait(None)
-            while not worker.done() or not out.empty():
+        if workers:
+            for _ in workers:
+                batches.put_nowait(None)
+            while not all(w.done() for w in workers) or not out.empty():
                 try:
                     yield await asyncio.wait_for(out.get(), 0.25)
                 except TimeoutError:
                     continue
-            worker.result()
+            for w in workers:
+                w.result()
 
     async def _worker(self, batches: asyncio.Queue, out: asyncio.Queue) -> None:
         while (item := await batches.get()) is not None:
@@ -120,7 +127,8 @@ class Broadcast:
         for job in jobs:
             job.sheet = self.tools.fact_sheet(job.players)
             job.recent_lines = list(self.recent_lines)
-        result = await self.workflow.run(Batch(jobs, self.aired))
+        # A fresh workflow run per batch, so parallel workers never share run state.
+        result = await build_workflow(self.agents).run(Batch(jobs, self.aired))
         for job in result.get_outputs():
             m = job.moment
             self.aired.append({"type": m.type, "minute": m.minute, "moment_id": m.id})

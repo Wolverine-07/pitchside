@@ -21,11 +21,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
+from pitchside import telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
 from pitchside.stats.state import MatchState
 from pitchside.tools import MATCH_HEADER, build_mcp_server
+
+telemetry.setup()
 
 LIVE: dict[str, MatchState] = {}
 
@@ -72,6 +75,7 @@ def health() -> dict:
         "ok": True,
         "provider": cfg.provider,
         "model": cfg.model,
+        "tracing": telemetry._done,
         "storylines": sorted(STORYLINES),
     }
 

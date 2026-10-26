@@ -296,19 +296,29 @@ class PersonaExec(Executor):
             else None
         )
         variants = (reply or {}).get("variants", {})
-        kept = 0
+        kept, why = 0, []
         facts = job.facts()
         for profile in job.profiles:
             v = variants.get(profile)
-            if v and verify(
-                f"{v.get('headline', '')}. {v.get('line', '')}", facts, job.names, live=False
-            ):
+            check = (
+                verify(
+                    f"{v.get('headline', '')}. {v.get('line', '')}", facts, job.names, live=False
+                )
+                if v
+                else None
+            )
+            if check:
                 job.variants[profile] = v
                 kept += 1
             else:
                 job.variants[profile] = base
+                if check is not None:
+                    why.append(f"{profile}: {check.problems[0]}")
         status = "ok" if reply else ("fallback" if self.agent else "rule")
-        job.log("persona", t0, status, f"{kept}/{len(job.profiles)} profiles rewritten")
+        note = f"{kept}/{len(job.profiles)} profiles rewritten" + (
+            f"; kept base for {'; '.join(why[:2])}" if why else ""
+        )
+        job.log("persona", t0, status, note)
         await ctx.send_message(job)
 
 

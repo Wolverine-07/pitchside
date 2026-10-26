@@ -180,7 +180,7 @@ def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
 
 END_OF_MATCH = re.compile(
     r"\b(late on|closing (minutes|stages)|final (minutes|five|stages|whistle)|dying (minutes|seconds)|"
-    r"frantic finish|final moments|late (chaos|surge|drama|on)|control late|with (just )?minutes (left|to go))\b",
+    r"frantic finish|final moments|late (chaos|surge|drama|on|in the (game|match))|(rally|control|push|surge) late|with (just )?minutes (left|to go))\b",
     re.IGNORECASE,
 )
 SINGULAR_CLUB = re.compile(
