@@ -199,9 +199,37 @@ MINUTE_ORDINAL = re.compile(r"\b(\d{1,2})(?:st|nd|rd|th) minute\b", re.IGNORECAS
 HALF_HOUR = re.compile(r"\bhalf[- ]an[- ]hour\b|\bhalf-hour\b|\bhalf hour\b", re.IGNORECASE)
 
 
-def check_context(text: str, minute: int | None) -> list[str]:
-    """Things a model gets wrong that a viewer notices at once."""
+def _minutes_in(facts: dict) -> set[int]:
+    """Minutes the facts refer to: goal times, another match's minute."""
+    found: set[int] = set()
+
+    def walk(v) -> None:
+        if isinstance(v, dict):
+            if v.get("metric") in ("goal_minute", "other_match_minute") and isinstance(
+                v.get("value"), int
+            ):
+                found.add(v["value"])
+            if "minute" in v and isinstance(v["minute"], int):
+                found.add(v["minute"])
+            for x in v.values():
+                walk(x)
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+
+    walk(facts)
+    return found
+
+
+def check_context(
+    text: str, minute: int | None, known_minutes: set[int] | None = None
+) -> list[str]:
+    """Things a model gets wrong that a viewer notices at once.
+
+    known_minutes: other minutes the facts mention (goal times, another match's clock), which a
+    caption may legitimately refer to, as a recap does."""
     problems = []
+    known = known_minutes or set()
     if minute is not None and minute < 80 and END_OF_MATCH.search(text):
         problems.append(f"talks about the end of the match, but it is only minute {minute}")
     m = SINGULAR_CLUB.search(text)
@@ -211,7 +239,7 @@ def check_context(text: str, minute: int | None) -> list[str]:
         problems.append('say "in the 41st minute", not "at 41 minutes"')
     if minute is not None:
         for said in MINUTE_ORDINAL.findall(text):
-            if abs(int(said) - minute) > 1:
+            if abs(int(said) - minute) > 1 and int(said) not in known:
                 problems.append(f"says minute {said}, but this moment is in minute {minute}")
         if HALF_HOUR.search(text) and not 25 <= minute <= 40:
             problems.append(f"mentions the half-hour, but it is minute {minute}")
@@ -244,6 +272,6 @@ def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) ->
         check_numbers(text, facts)
         + check_names(text, facts, roster)
         + check_style(text, live)
-        + check_context(text, minute)
+        + check_context(text, minute, _minutes_in(facts))
     )
     return Check(not problems, problems)

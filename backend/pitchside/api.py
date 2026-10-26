@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
-from pitchside import speech, telemetry
+from pitchside import pundit, speech, telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
@@ -81,6 +81,32 @@ def health() -> dict:
         "speech": speech.enabled(),
         "storylines": sorted(STORYLINES),
     }
+
+
+@app.post("/api/ask")
+async def ask_pitchside(body: dict) -> dict:
+    """A viewer's question about their live match, answered by the Pundit agent and verified."""
+    state = LIVE.get(body.get("match_key", ""))
+    if state is None:
+        return {
+            "answer": "That match isn't live any more. Kick off a new one and ask again.",
+            "verified": False,
+            "steps": [],
+        }
+    client = clients()["fast"]
+    if client is None:
+        return {
+            "answer": "Ask Pitchside needs a model; this server is running in template mode.",
+            "verified": False,
+            "steps": [],
+        }
+    return await pundit.answer(
+        state,
+        client,
+        str(body.get("question", "")),
+        body.get("lang", "en"),
+        body.get("profile", "casual"),
+    )
 
 
 @app.get("/api/speak")

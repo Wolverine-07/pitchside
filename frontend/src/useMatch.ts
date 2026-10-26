@@ -32,6 +32,7 @@ export type MatchView = {
   goals: Goal[];
   lastGoal: (Goal & { at: number }) | null;
   player: PlayerStats | null;
+  matchKey: string | null;
 };
 
 const EMPTY: MatchView = {
@@ -54,6 +55,7 @@ const EMPTY: MatchView = {
   goals: [],
   lastGoal: null,
   player: null,
+  matchKey: null,
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -108,7 +110,7 @@ export function useMatch() {
 function reduce(v: MatchView, item: any): MatchView {
   switch (item.kind) {
     case "hello":
-      return { ...v, status: "live", provider: item.provider };
+      return { ...v, status: "live", provider: item.provider, matchKey: item.match_key };
     case "event": {
       const e: MatchEvent = item.event;
       if (e.type === "match_start") {

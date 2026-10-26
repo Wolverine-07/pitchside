@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AgentSummary,
+  AskPanel,
   AgentTrace,
   CommentaryFeed,
   ControlGauge,
@@ -81,7 +82,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("casual");
   const [lang, setLang] = useState<Lang>("en");
   const [voice, setVoice] = useState(false);
-  const [tab, setTab] = useState<"commentary" | "agents" | "league">("commentary");
+  const [tab, setTab] = useState<"commentary" | "ask" | "agents" | "league">("commentary");
 
   useEffect(() => {
     fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}`)
@@ -174,7 +175,7 @@ export default function App() {
                 <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />
               </Pitch>
             </div>
-            <div className="grid h-[150px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
+            <div className="grid h-[164px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
               <Momentum data={view.momentum} meta={m} goals={view.goals} />
               <MatchStats snapshot={view.snapshot} meta={m} />
               <ControlGauge value={view.snapshot?.chaos_5min} />
@@ -186,6 +187,7 @@ export default function App() {
               {(
                 [
                   ["commentary", "Commentary", myCards.length],
+                  ["ask", "Ask", null],
                   ["agents", "Agents", view.traces.length],
                   ["league", "League", view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
                 ] as const
@@ -196,7 +198,7 @@ export default function App() {
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-[13px] font-semibold transition-colors ${tab === id ? "bg-panel-2 text-white" : "text-muted hover:text-soft"}`}
                 >
                   {label}
-                  <span className="rounded-full bg-white/5 px-1.5 font-mono text-[11px] text-soft">{n}</span>
+                  {n !== null && <span className="rounded-full bg-white/5 px-1.5 font-mono text-[11px] text-soft">{n}</span>}
                 </button>
               ))}
             </div>
@@ -209,6 +211,14 @@ export default function App() {
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {tab === "commentary" ? (
                 <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+              ) : tab === "ask" ? (
+                <AskPanel
+                  matchKey={view.matchKey}
+                  lang={lang}
+                  profile={profile}
+                  voice={voice}
+                  suggestions={askSuggestions(m, settings, view.snapshot?.chaos_5min, lang)}
+                />
               ) : tab === "league" ? (
                 <LeagueTable league={view.league ?? m?.league ?? null} highlight={m ? [m.home.code, m.away.code] : []} />
               ) : (
@@ -226,6 +236,23 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function askSuggestions(m: Meta | null, s: Settings, chaos: number | undefined, lang: string) {
+  if (!m) return [];
+  const player = [...m.home.players, ...m.away.players].find((p) => p.id === s.player)?.name.split(" ").at(-1) ?? "my player";
+  const club = s.club === m.home.code ? m.home.name : m.away.name;
+  const byLang: Record<string, string[]> = {
+    en: [
+      `How is ${player} playing?`,
+      `Why ${chaos !== undefined && chaos > 0.6 ? "is the game so chaotic" : "is this game going the way it is"}?`,
+      `What does this score do to ${club} in the table?`,
+      "Who has been the best player?",
+    ],
+    hi: [`${player} कैसा खेल रहे हैं?`, "अभी मैच में क्या हो रहा है?", `तालिका में ${club} की स्थिति क्या है?`],
+    es: [`¿Cómo está jugando ${player}?`, "¿Por qué el partido va así?", `¿Qué significa este resultado para ${club} en la tabla?`],
+  };
+  return byLang[lang] ?? byLang.en;
 }
 
 function ordinal(n?: number) {

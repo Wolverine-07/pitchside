@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import type { Goal, League, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
+import type {
+  Goal,
+  League,
+  Meta,
+  Overlay,
+  PlayerStats,
+  Shot,
+  Snapshot,
+  Trace,
+} from "./types";
 import { pitchPos, type BallPoint } from "./useMatch";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
-  meta && code ? (code === meta.home.code ? meta.home.colors[0] : meta.away.colors[0]) : "#7d8aa6";
+  meta && code
+    ? code === meta.home.code
+      ? meta.home.colors[0]
+      : meta.away.colors[0]
+    : "#7d8aa6";
 
 const MOMENT_LABEL: Record<string, string> = {
   goal: "Goal",
@@ -18,8 +31,10 @@ const MOMENT_LABEL: Record<string, string> = {
   half_time_recap: "Half-time recap",
   full_time_recap: "Full-time recap",
 };
-export const isRecap = (o?: Overlay) => !!o && String(o.content.moment_type).endsWith("_recap");
-export const momentLabel = (t: string) => MOMENT_LABEL[t] ?? t.replace("_", " ");
+export const isRecap = (o?: Overlay) =>
+  !!o && String(o.content.moment_type).endsWith("_recap");
+export const momentLabel = (t: string) =>
+  MOMENT_LABEL[t] ?? t.replace("_", " ");
 
 /* ---------- scoreboard ---------- */
 
@@ -35,13 +50,28 @@ function Crest({ code, color }: { code: string; color: string }) {
 }
 
 const playerName = (meta: Meta, id: string) =>
-  [...meta.home.players, ...meta.away.players].find((p) => p.id === id)?.name.split(" ").at(-1) ?? id;
+  [...meta.home.players, ...meta.away.players]
+    .find((p) => p.id === id)
+    ?.name.split(" ")
+    .at(-1) ?? id;
 
-function Scorers({ meta, goals, team, align }: { meta: Meta; goals: Goal[]; team: string; align: "left" | "right" }) {
+function Scorers({
+  meta,
+  goals,
+  team,
+  align,
+}: {
+  meta: Meta;
+  goals: Goal[];
+  team: string;
+  align: "left" | "right";
+}) {
   const mine = goals.filter((g) => g.team === team);
   if (!mine.length) return null;
   return (
-    <div className={`truncate text-[11px] text-soft ${align === "right" ? "text-right" : ""}`}>
+    <div
+      className={`truncate text-[11px] text-soft ${align === "right" ? "text-right" : ""}`}
+    >
       {mine.map((g, i) => (
         <span key={i}>
           {i > 0 && ", "}
@@ -53,17 +83,40 @@ function Scorers({ meta, goals, team, align }: { meta: Meta; goals: Goal[]; team
   );
 }
 
-export function Scoreboard({ meta, snapshot, clock, goals = [] }: { meta: Meta | null; snapshot: Snapshot | null; clock: { minute: number; added?: number; period: number }; goals?: Goal[] }) {
-  if (!meta) return <div className="h-16 rounded-xl border border-line bg-panel" />;
+export function Scoreboard({
+  meta,
+  snapshot,
+  clock,
+  goals = [],
+}: {
+  meta: Meta | null;
+  snapshot: Snapshot | null;
+  clock: { minute: number; added?: number; period: number };
+  goals?: Goal[];
+}) {
+  if (!meta)
+    return <div className="h-16 rounded-xl border border-line bg-panel" />;
   const s = snapshot?.score ?? { [meta.home.code]: 0, [meta.away.code]: 0 };
-  const half = clock.minute === 0 ? "Pre-match" : clock.period === 1 ? "First half" : "Second half";
+  const half =
+    clock.minute === 0
+      ? "Pre-match"
+      : clock.period === 1
+        ? "First half"
+        : "Second half";
   return (
     <div className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-xl border border-line bg-panel px-5">
       <div className="flex min-w-0 items-center gap-3">
         <Crest code={meta.home.code} color={meta.home.colors[0]} />
         <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold">{meta.home.name}</div>
-          <Scorers meta={meta} goals={goals} team={meta.home.code} align="left" />
+          <div className="truncate text-[15px] font-semibold">
+            {meta.home.name}
+          </div>
+          <Scorers
+            meta={meta}
+            goals={goals}
+            team={meta.home.code}
+            align="left"
+          />
         </div>
       </div>
       <div className="flex flex-col items-center">
@@ -82,8 +135,15 @@ export function Scoreboard({ meta, snapshot, clock, goals = [] }: { meta: Meta |
       </div>
       <div className="flex min-w-0 items-center justify-end gap-3">
         <div className="min-w-0">
-          <div className="truncate text-right text-[15px] font-semibold">{meta.away.name}</div>
-          <Scorers meta={meta} goals={goals} team={meta.away.code} align="right" />
+          <div className="truncate text-right text-[15px] font-semibold">
+            {meta.away.name}
+          </div>
+          <Scorers
+            meta={meta}
+            goals={goals}
+            team={meta.away.code}
+            align="right"
+          />
         </div>
         <Crest code={meta.away.code} color={meta.away.colors[0]} />
       </div>
@@ -95,14 +155,40 @@ export function Scoreboard({ meta, snapshot, clock, goals = [] }: { meta: Meta |
 
 // Same 4-3-3 shape as the simulator: x from own goal line, y from right touchline.
 const SHAPE: Record<number, [number, number]> = {
-  1: [5, 34], 2: [30, 60], 4: [22, 44], 5: [22, 24], 3: [30, 8], 6: [42, 34], 8: [52, 46], 10: [52, 22],
-  7: [76, 58], 9: [84, 34], 11: [76, 10], 13: [5, 34], 15: [22, 34], 14: [52, 34], 17: [76, 58], 19: [84, 34],
+  1: [5, 34],
+  2: [30, 60],
+  4: [22, 44],
+  5: [22, 24],
+  3: [30, 8],
+  6: [42, 34],
+  8: [52, 46],
+  10: [52, 22],
+  7: [76, 58],
+  9: [84, 34],
+  11: [76, 10],
+  13: [5, 34],
+  15: [22, 34],
+  14: [52, 34],
+  17: [76, 58],
+  19: [84, 34],
 };
 
-function Players({ meta, onPitch, ball, focus }: { meta: Meta; onPitch: string[]; ball?: BallPoint; focus?: string }) {
+function Players({
+  meta,
+  onPitch,
+  ball,
+  focus,
+}: {
+  meta: Meta;
+  onPitch: string[];
+  ball?: BallPoint;
+  focus?: string;
+}) {
   const bx = ball?.x ?? 52.5;
   const by = ball?.y ?? 34;
-  const players = [...meta.home.players, ...meta.away.players].filter((p) => onPitch.includes(p.id));
+  const players = [...meta.home.players, ...meta.away.players].filter((p) =>
+    onPitch.includes(p.id),
+  );
   return (
     <g>
       {players.map((p) => {
@@ -115,10 +201,27 @@ function Players({ meta, onPitch, ball, focus }: { meta: Meta; onPitch: string[]
         if (!home) [x, y] = [105 - x, 68 - y];
         const color = home ? meta.home.colors[0] : meta.away.colors[0];
         return (
-          <g key={p.id} style={{ transition: "transform 800ms cubic-bezier(.2,.7,.3,1)" }} transform={`translate(${x} ${68 - y})`}>
-            {p.id === focus && <circle r="2.8" fill="none" stroke="#fbbf24" strokeWidth="0.4" />}
-            <circle r="1.45" fill={color} stroke="rgba(255,255,255,.85)" strokeWidth="0.22" />
-            <text y="0.55" textAnchor="middle" fontSize="1.45" fontWeight="700" fill="white">
+          <g
+            key={p.id}
+            style={{ transition: "transform 800ms cubic-bezier(.2,.7,.3,1)" }}
+            transform={`translate(${x} ${68 - y})`}
+          >
+            {p.id === focus && (
+              <circle r="2.8" fill="none" stroke="#fbbf24" strokeWidth="0.4" />
+            )}
+            <circle
+              r="1.45"
+              fill={color}
+              stroke="rgba(255,255,255,.85)"
+              strokeWidth="0.22"
+            />
+            <text
+              y="0.55"
+              textAnchor="middle"
+              fontSize="1.45"
+              fontWeight="700"
+              fill="white"
+            >
               {p.number}
             </text>
           </g>
@@ -128,10 +231,30 @@ function Players({ meta, onPitch, ball, focus }: { meta: Meta; onPitch: string[]
   );
 }
 
-export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], children }: { meta: Meta | null; trail: BallPoint[]; tags: Overlay[]; clockMs: number; onPitch: string[]; focus?: string; shots?: Shot[]; children?: React.ReactNode }) {
+export function Pitch({
+  meta,
+  trail,
+  tags,
+  clockMs,
+  onPitch,
+  focus,
+  shots = [],
+  children,
+}: {
+  meta: Meta | null;
+  trail: BallPoint[];
+  tags: Overlay[];
+  clockMs: number;
+  onPitch: string[];
+  focus?: string;
+  shots?: Shot[];
+  children?: React.ReactNode;
+}) {
   const ball = trail.at(-1);
   const recent = trail.slice(-5);
-  const recentTags = tags.filter((t) => clockMs - t.anchor_t_ms < 20_000).slice(-2);
+  const recentTags = tags
+    .filter((t) => clockMs - t.anchor_t_ms < 20_000)
+    .slice(-2);
   return (
     <div className="pitch-box relative overflow-hidden rounded-xl border border-line shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]">
       <svg viewBox="-3 -3 111 74" className="absolute inset-0 h-full w-full">
@@ -143,7 +266,14 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], 
         </defs>
         <rect x="-3" y="-3" width="111" height="74" fill="var(--color-grass)" />
         {Array.from({ length: 10 }, (_, i) => (
-          <rect key={i} x={i * 10.5} y="0" width="10.5" height="68" fill={i % 2 ? "var(--color-grass-2)" : "var(--color-grass)"} />
+          <rect
+            key={i}
+            x={i * 10.5}
+            y="0"
+            width="10.5"
+            height="68"
+            fill={i % 2 ? "var(--color-grass-2)" : "var(--color-grass)"}
+          />
         ))}
         <g fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="0.3">
           <rect x="0" y="0" width="105" height="68" />
@@ -164,19 +294,48 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], 
           const color = clubColor(meta, s.team);
           return s.outcome === "goal" ? (
             <g key={i} transform={`translate(${s.x} ${68 - s.y})`}>
-              <circle r={r + 0.6} fill="none" stroke="white" strokeWidth="0.35" />
+              <circle
+                r={r + 0.6}
+                fill="none"
+                stroke="white"
+                strokeWidth="0.35"
+              />
               <circle r={r} fill={color} />
             </g>
           ) : (
-            <circle key={i} cx={s.x} cy={68 - s.y} r={r} fill="none" stroke={color} strokeWidth="0.35" opacity="0.9" />
+            <circle
+              key={i}
+              cx={s.x}
+              cy={68 - s.y}
+              r={r}
+              fill="none"
+              stroke={color}
+              strokeWidth="0.35"
+              opacity="0.9"
+            />
           );
         })}
-        {meta && <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} />}
+        {meta && (
+          <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} />
+        )}
         {recent.slice(1).map((p, i) => (
-          <line key={i} x1={recent[i].x} y1={68 - recent[i].y} x2={p.x} y2={68 - p.y} stroke="white" strokeOpacity={0.12 + i * 0.12} strokeWidth="0.35" strokeLinecap="round" />
+          <line
+            key={i}
+            x1={recent[i].x}
+            y1={68 - recent[i].y}
+            x2={p.x}
+            y2={68 - p.y}
+            stroke="white"
+            strokeOpacity={0.12 + i * 0.12}
+            strokeWidth="0.35"
+            strokeLinecap="round"
+          />
         ))}
         {ball && (
-          <g style={{ transition: "transform 300ms linear" }} transform={`translate(${ball.x} ${68 - ball.y})`}>
+          <g
+            style={{ transition: "transform 300ms linear" }}
+            transform={`translate(${ball.x} ${68 - ball.y})`}
+          >
             <circle r="2.4" fill="white" opacity="0.12" />
             <circle r="0.95" fill="white" />
           </g>
@@ -186,15 +345,40 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], 
           const p = pitchPos(meta, team, t.content.x ?? 52, t.content.y ?? 34);
           const label = `${t.content.name.split(" ").at(-1)} · ${Math.round(t.content.speed_kmh)} km/h`;
           return (
-            <g key={t.overlay_id} transform={`translate(${Math.min(p.x, 84)} ${Math.max(68 - p.y, 6)})`}>
-              <rect x="1.8" y="-5.6" width={label.length * 1.05 + 3} height="3.6" rx="1.8" fill="rgba(7,11,20,.85)" stroke={clubColor(meta, team)} strokeWidth="0.25" />
-              <text x="3.3" y="-3.15" fontSize="1.9" fontWeight="600" fill="white">
+            <g
+              key={t.overlay_id}
+              transform={`translate(${Math.min(p.x, 84)} ${Math.max(68 - p.y, 6)})`}
+            >
+              <rect
+                x="1.8"
+                y="-5.6"
+                width={label.length * 1.05 + 3}
+                height="3.6"
+                rx="1.8"
+                fill="rgba(7,11,20,.85)"
+                stroke={clubColor(meta, team)}
+                strokeWidth="0.25"
+              />
+              <text
+                x="3.3"
+                y="-3.15"
+                fontSize="1.9"
+                fontWeight="600"
+                fill="white"
+              >
                 {label}
               </text>
             </g>
           );
         })}
-        <rect x="-3" y="-3" width="111" height="74" fill="url(#vignette)" pointerEvents="none" />
+        <rect
+          x="-3"
+          y="-3"
+          width="111"
+          height="74"
+          fill="url(#vignette)"
+          pointerEvents="none"
+        />
       </svg>
       {children}
     </div>
@@ -205,22 +389,41 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, shots = [], 
 
 let current: HTMLAudioElement | null = null;
 
+export function say(text: string, lang: string) {
+  speak(text, lang);
+}
+
 /** Azure AI Speech neural voice from the API; the browser's own voice if that is unavailable. */
 function speak(text: string, lang: string) {
   current?.pause();
-  const audio = new Audio(`/api/speak?lang=${lang}&text=${encodeURIComponent(text)}`);
+  const audio = new Audio(
+    `/api/speak?lang=${lang}&text=${encodeURIComponent(text)}`,
+  );
   current = audio;
   audio.play().catch(() => {
     if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = ({ en: "en-GB", hi: "hi-IN", es: "es-ES" } as Record<string, string>)[lang] ?? "en-GB";
+    u.lang =
+      ({ en: "en-GB", hi: "hi-IN", es: "es-ES" } as Record<string, string>)[
+        lang
+      ] ?? "en-GB";
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
   });
 }
 
 /** A slim broadcast lower third: newest card for this viewer, on screen for a few seconds. */
-export function LowerThird({ card, voice, lang, meta }: { card: Overlay | undefined; voice: boolean; lang: string; meta: Meta | null }) {
+export function LowerThird({
+  card,
+  voice,
+  lang,
+  meta,
+}: {
+  card: Overlay | undefined;
+  voice: boolean;
+  lang: string;
+  meta: Meta | null;
+}) {
   const [shown, setShown] = useState<Overlay | undefined>();
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -234,7 +437,10 @@ export function LowerThird({ card, voice, lang, meta }: { card: Overlay | undefi
   const c = shown.content;
   const color = clubColor(meta, c.team);
   return (
-    <div key={shown.overlay_id} className="rise pointer-events-none absolute bottom-[4%] left-[3%] w-[min(560px,64%)] overflow-hidden rounded-lg bg-[rgba(7,11,20,.86)] shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+    <div
+      key={shown.overlay_id}
+      className="rise pointer-events-none absolute bottom-[4%] left-[3%] w-[min(560px,64%)] overflow-hidden rounded-lg bg-[rgba(7,11,20,.86)] shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
+    >
       <div className="flex">
         <div className="w-1 shrink-0" style={{ background: color }} />
         <div className="min-w-0 px-3.5 py-2.5">
@@ -242,14 +448,24 @@ export function LowerThird({ card, voice, lang, meta }: { card: Overlay | undefi
             <span style={{ color }}>{momentLabel(c.moment_type)}</span>
             <span className="text-muted">·</span>
             <span className="flex items-center gap-1 text-good">
-              <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 12 12"
+                className="h-2.5 w-2.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M2 6.5 5 9l5-6" />
               </svg>
               Verified
             </span>
           </div>
-          <div className="mt-0.5 truncate text-[15px] font-semibold leading-snug">{c.headline}</div>
-          <div className="line-clamp-2 text-[13px] leading-snug text-soft">{c.body}</div>
+          <div className="mt-0.5 truncate text-[15px] font-semibold leading-snug">
+            {c.headline}
+          </div>
+          <div className="line-clamp-2 text-[13px] leading-snug text-soft">
+            {c.body}
+          </div>
         </div>
       </div>
     </div>
@@ -258,9 +474,21 @@ export function LowerThird({ card, voice, lang, meta }: { card: Overlay | undefi
 
 /* ---------- stats row ---------- */
 
-export function Panel({ title, right, children, className = "" }: { title: string; right?: React.ReactNode; children: React.ReactNode; className?: string }) {
+export function Panel({
+  title,
+  right,
+  children,
+  className = "",
+}: {
+  title: string;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={`flex min-h-0 flex-col rounded-xl border border-line bg-panel ${className}`}>
+    <div
+      className={`flex min-h-0 flex-col rounded-xl border border-line bg-panel ${className}`}
+    >
       <div className="flex items-center justify-between px-4 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
         <span>{title}</span>
         {right}
@@ -270,13 +498,28 @@ export function Panel({ title, right, children, className = "" }: { title: strin
   );
 }
 
-export function Momentum({ data, meta, goals = [] }: { data: { t: number; v: number }[]; meta: Meta | null; goals?: Goal[] }) {
+export function Momentum({
+  data,
+  meta,
+  goals = [],
+}: {
+  data: { t: number; v: number }[];
+  meta: Meta | null;
+  goals?: Goal[];
+}) {
   const w = 600,
     h = 64;
   const tMax = Math.max(95 * 60_000, data.at(-1)?.t ?? 0);
-  const pts = data.map((d) => [(d.t / tMax) * w, h / 2 - (d.v / 100) * (h / 2 - 3)] as const);
-  const line = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L");
-  const area = pts.length > 1 ? `M${pts[0][0]},${h / 2} L${line} L${pts.at(-1)![0]},${h / 2} Z` : "";
+  const pts = data.map(
+    (d) => [(d.t / tMax) * w, h / 2 - (d.v / 100) * (h / 2 - 3)] as const,
+  );
+  const line = pts
+    .map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(" L");
+  const area =
+    pts.length > 1
+      ? `M${pts[0][0]},${h / 2} L${line} L${pts.at(-1)![0]},${h / 2} Z`
+      : "";
   const home = clubColor(meta, meta?.home.code);
   const away = clubColor(meta, meta?.away.code);
   return (
@@ -295,51 +538,119 @@ export function Momentum({ data, meta, goals = [] }: { data: { t: number; v: num
         </span>
       }
     >
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-full min-h-14 w-full" preserveAspectRatio="none">
-        <defs>
-          <clipPath id="top">
-            <rect x="0" y="0" width={w} height={h / 2} />
-          </clipPath>
-          <clipPath id="bottom">
-            <rect x="0" y={h / 2} width={w} height={h / 2} />
-          </clipPath>
-        </defs>
-        <line x1={w * (45 / 95)} y1="0" x2={w * (45 / 95)} y2={h} stroke="var(--color-line)" strokeDasharray="3 3" />
-        <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="var(--color-line)" />
-        {area && (
-          <>
-            <path d={area} fill={home} fillOpacity="0.55" clipPath="url(#top)" />
-            <path d={area} fill={away} fillOpacity="0.55" clipPath="url(#bottom)" />
-          </>
-        )}
+      <div className="relative h-full min-h-14">
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          className="h-full w-full"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <clipPath id="top">
+              <rect x="0" y="0" width={w} height={h / 2} />
+            </clipPath>
+            <clipPath id="bottom">
+              <rect x="0" y={h / 2} width={w} height={h / 2} />
+            </clipPath>
+          </defs>
+          <line
+            x1={w * (45 / 95)}
+            y1="0"
+            x2={w * (45 / 95)}
+            y2={h}
+            stroke="var(--color-line)"
+            strokeDasharray="3 3"
+          />
+          <line
+            x1="0"
+            y1={h / 2}
+            x2={w}
+            y2={h / 2}
+            stroke="var(--color-line)"
+          />
+          {area && (
+            <>
+              <path
+                d={area}
+                fill={home}
+                fillOpacity="0.55"
+                clipPath="url(#top)"
+              />
+              <path
+                d={area}
+                fill={away}
+                fillOpacity="0.55"
+                clipPath="url(#bottom)"
+              />
+            </>
+          )}
+        </svg>
         {goals.map((g, i) => {
-          const x = ((g.minute + (g.minute > 45 ? 2 : 0)) / 95) * w;
+          const left = ((g.minute + (g.minute > 45 ? 2 : 0)) / 95) * 100;
           const up = meta && g.team === meta.home.code;
-          return <circle key={i} cx={x} cy={up ? 5 : h - 5} r="4" fill={clubColor(meta, g.team)} stroke="white" strokeWidth="1.2" />;
+          return (
+            <span
+              key={i}
+              title={`Goal ${g.minute}'`}
+              className={`absolute h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-2 ring-white ${up ? "top-1" : "bottom-1"}`}
+              style={{ left: `${left}%`, background: clubColor(meta, g.team) }}
+            />
+          );
         })}
-      </svg>
+      </div>
     </Panel>
   );
 }
 
-function Split({ label, home, away, meta, fmt = (v: number) => String(v) }: { label: string; home: number; away: number; meta: Meta | null; fmt?: (v: number) => string }) {
+function Split({
+  label,
+  home,
+  away,
+  meta,
+  fmt = (v: number) => String(v),
+}: {
+  label: string;
+  home: number;
+  away: number;
+  meta: Meta | null;
+  fmt?: (v: number) => string;
+}) {
   const total = home + away || 1;
   return (
     <div>
       <div className="flex items-baseline justify-between text-sm">
         <span className="font-mono font-medium">{fmt(home)}</span>
-        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">{label}</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">
+          {label}
+        </span>
         <span className="font-mono font-medium">{fmt(away)}</span>
       </div>
       <div className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-        <div className="rounded-l-full transition-all duration-700" style={{ width: `${(home / total) * 100}%`, background: clubColor(meta, meta?.home.code) }} />
-        <div className="rounded-r-full transition-all duration-700" style={{ width: `${(away / total) * 100}%`, background: clubColor(meta, meta?.away.code) }} />
+        <div
+          className="rounded-l-full transition-all duration-700"
+          style={{
+            width: `${(home / total) * 100}%`,
+            background: clubColor(meta, meta?.home.code),
+          }}
+        />
+        <div
+          className="rounded-r-full transition-all duration-700"
+          style={{
+            width: `${(away / total) * 100}%`,
+            background: clubColor(meta, meta?.away.code),
+          }}
+        />
       </div>
     </div>
   );
 }
 
-function WinProbability({ p, meta }: { p: Record<string, number>; meta: Meta }) {
+function WinProbability({
+  p,
+  meta,
+}: {
+  p: Record<string, number>;
+  meta: Meta;
+}) {
   const h = p[meta.home.code] ?? 0,
     d = p.draw ?? 0,
     a = p[meta.away.code] ?? 0;
@@ -347,26 +658,56 @@ function WinProbability({ p, meta }: { p: Record<string, number>; meta: Meta }) 
     <div>
       <div className="flex items-baseline justify-between text-sm">
         <span className="font-mono font-medium">{h}%</span>
-        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">Win probability · draw {d}%</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">
+          Win chance · <span className="text-soft">draw {d}%</span>
+        </span>
         <span className="font-mono font-medium">{a}%</span>
       </div>
       <div className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-        <div className="rounded-l-full transition-all duration-700" style={{ width: `${h}%`, background: meta.home.colors[0] }} />
-        <div className="bg-white/25 transition-all duration-700" style={{ width: `${d}%` }} />
-        <div className="rounded-r-full transition-all duration-700" style={{ width: `${a}%`, background: meta.away.colors[0] }} />
+        <div
+          className="rounded-l-full transition-all duration-700"
+          style={{ width: `${h}%`, background: meta.home.colors[0] }}
+        />
+        <div
+          className="bg-white/25 transition-all duration-700"
+          style={{ width: `${d}%` }}
+        />
+        <div
+          className="rounded-r-full transition-all duration-700"
+          style={{ width: `${a}%`, background: meta.away.colors[0] }}
+        />
       </div>
     </div>
   );
 }
 
-export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta: Meta | null }) {
+export function MatchStats({
+  snapshot,
+  meta,
+}: {
+  snapshot: Snapshot | null;
+  meta: Meta | null;
+}) {
   return (
     <Panel title="Match stats">
       {snapshot && meta ? (
         <div className="space-y-3">
-          <Split label="Possession %" home={snapshot.possession_pct[meta.home.code]} away={snapshot.possession_pct[meta.away.code]} meta={meta} />
-          <Split label="Expected goals" home={snapshot.xg[meta.home.code]} away={snapshot.xg[meta.away.code]} meta={meta} fmt={(v) => v.toFixed(2)} />
-          {snapshot.win_probability_pct && <WinProbability p={snapshot.win_probability_pct} meta={meta} />}
+          <Split
+            label="Possession %"
+            home={snapshot.possession_pct[meta.home.code]}
+            away={snapshot.possession_pct[meta.away.code]}
+            meta={meta}
+          />
+          <Split
+            label="Expected goals"
+            home={snapshot.xg[meta.home.code]}
+            away={snapshot.xg[meta.away.code]}
+            meta={meta}
+            fmt={(v) => v.toFixed(2)}
+          />
+          {snapshot.win_probability_pct && (
+            <WinProbability p={snapshot.win_probability_pct} meta={meta} />
+          )}
         </div>
       ) : (
         <div className="text-sm text-muted">Waiting for kick-off</div>
@@ -380,10 +721,18 @@ export function ControlGauge({ value }: { value: number | undefined }) {
   const label = v >= 0.65 ? "Chaotic" : v <= 0.4 ? "Controlled" : "Contested";
   const tone = v >= 0.65 ? "text-bad" : v <= 0.4 ? "text-good" : "text-warn";
   return (
-    <Panel title="Control vs chaos" right={<span className="normal-case tracking-normal">last 5 min</span>}>
-      <div className={`text-xl font-semibold ${tone}`}>{value === undefined ? "–" : label}</div>
+    <Panel
+      title="Control vs chaos"
+      right={<span className="normal-case tracking-normal">last 5 min</span>}
+    >
+      <div className={`text-xl font-semibold ${tone}`}>
+        {value === undefined ? "–" : label}
+      </div>
       <div className="relative mt-2 h-1.5 rounded-full bg-gradient-to-r from-good via-warn to-bad">
-        <div className="absolute -top-1 h-3.5 w-1 rounded bg-white shadow transition-all duration-700" style={{ left: `calc(${v * 100}% - 2px)` }} />
+        <div
+          className="absolute -top-1 h-3.5 w-1 rounded bg-white shadow transition-all duration-700"
+          style={{ left: `calc(${v * 100}% - 2px)` }}
+        />
       </div>
       <div className="mt-1.5 flex justify-between text-[10px] uppercase tracking-[0.12em] text-muted">
         <span>Control</span>
@@ -395,8 +744,19 @@ export function ControlGauge({ value }: { value: number | undefined }) {
 
 /* ---------- sidebar: commentary and agents ---------- */
 
-export function CommentaryFeed({ cards, meta, liveId }: { cards: Overlay[]; meta: Meta | null; liveId?: string }) {
-  if (!cards.length) return <Empty text="Captions appear here as the agents put moments on air." />;
+export function CommentaryFeed({
+  cards,
+  meta,
+  liveId,
+}: {
+  cards: Overlay[];
+  meta: Meta | null;
+  liveId?: string;
+}) {
+  if (!cards.length)
+    return (
+      <Empty text="Captions appear here as the agents put moments on air." />
+    );
   return (
     <ol className="space-y-2.5">
       {[...cards].reverse().map((c) => {
@@ -408,12 +768,22 @@ export function CommentaryFeed({ cards, meta, liveId }: { cards: Overlay[]; meta
             className={`rise rounded-lg border p-3 ${isRecap(c) ? "border-warn/40 bg-warn/5" : c.overlay_id === liveId ? "border-accent/50 bg-accent/5" : "border-line bg-panel-2/60"}`}
           >
             <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
-              <span className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-soft">{minute}'</span>
-              <span style={{ color }}>{momentLabel(c.content.moment_type)}</span>
-              {c.provenance.fallback && <span className="text-warn">template</span>}
+              <span className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-soft">
+                {minute}'
+              </span>
+              <span style={{ color }}>
+                {momentLabel(c.content.moment_type)}
+              </span>
+              {c.provenance.fallback && (
+                <span className="text-warn">template</span>
+              )}
             </div>
-            <div className="text-[14px] font-semibold leading-snug">{c.content.headline}</div>
-            <div className="mt-0.5 text-[13px] leading-snug text-soft">{c.content.body}</div>
+            <div className="text-[14px] font-semibold leading-snug">
+              {c.content.headline}
+            </div>
+            <div className="mt-0.5 text-[13px] leading-snug text-soft">
+              {c.content.body}
+            </div>
           </li>
         );
       })}
@@ -432,36 +802,60 @@ const STEP_TONE: Record<string, string> = {
 
 export function AgentSummary({ traces }: { traces: Trace[] }) {
   const steps = traces.flatMap((t) => t.steps);
-  const rejected = steps.filter((s) => s.agent === "verifier" && s.status === "reject").length;
+  const rejected = steps.filter(
+    (s) => s.agent === "verifier" && s.status === "reject",
+  ).length;
   const templates = steps.filter((s) => s.agent === "template").length;
-  const corrected = steps.filter((s) => s.agent === "analyst" && s.status === "corrected").length;
+  const corrected = steps.filter(
+    (s) => s.agent === "analyst" && s.status === "corrected",
+  ).length;
   const total = traces.map((t) => t.steps.reduce((a, s) => a + s.ms, 0));
-  const avg = total.length ? total.reduce((a, b) => a + b, 0) / total.length / 1000 : 0;
+  const avg = total.length
+    ? total.reduce((a, b) => a + b, 0) / total.length / 1000
+    : 0;
   const tiles = [
     { label: "Moments aired", value: traces.length },
     { label: "Drafts sent back", value: rejected },
     { label: "Citations fixed", value: corrected },
-    { label: "Avg agent time", value: traces.length ? `${avg.toFixed(1)}s` : "–" },
+    {
+      label: "Avg agent time",
+      value: traces.length ? `${avg.toFixed(1)}s` : "–",
+    },
   ];
   return (
     <div className="mb-3 grid grid-cols-2 gap-2">
       {tiles.map((t) => (
-        <div key={t.label} className="rounded-lg border border-line bg-panel-2/60 px-3 py-2">
+        <div
+          key={t.label}
+          className="rounded-lg border border-line bg-panel-2/60 px-3 py-2"
+        >
           <div className="font-mono text-lg font-medium">{t.value}</div>
-          <div className="text-[10px] uppercase tracking-[0.12em] text-muted">{t.label}</div>
+          <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
+            {t.label}
+          </div>
         </div>
       ))}
-      {templates > 0 && <div className="col-span-2 text-xs text-muted">{templates} moment(s) aired a verified template line.</div>}
+      {templates > 0 && (
+        <div className="col-span-2 text-xs text-muted">
+          {templates} moment(s) aired a verified template line.
+        </div>
+      )}
     </div>
   );
 }
 
 export function AgentTrace({ traces }: { traces: Trace[] }) {
-  if (!traces.length) return <Empty text="Each moment's path through the six agents shows up here." />;
+  if (!traces.length)
+    return (
+      <Empty text="Each moment's path through the six agents shows up here." />
+    );
   return (
     <div className="space-y-2.5">
       {traces.map((t) => (
-        <div key={t.moment_id} className="rise rounded-lg border border-line bg-panel-2/60 p-3">
+        <div
+          key={t.moment_id}
+          className="rise rounded-lg border border-line bg-panel-2/60 p-3"
+        >
           <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em]">
             <span>{momentLabel(t.type)}</span>
             <span className="font-mono text-muted">{t.minute}'</span>
@@ -470,11 +864,23 @@ export function AgentTrace({ traces }: { traces: Trace[] }) {
             {t.steps.map((s, i) => (
               <li key={i} className="text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="w-16 font-semibold capitalize">{s.agent}</span>
-                  <span className={STEP_TONE[s.status] ?? "text-soft"}>{s.status}</span>
-                  <span className="ml-auto font-mono text-muted">{s.ms >= 1000 ? `${(s.ms / 1000).toFixed(1)}s` : `${s.ms}ms`}</span>
+                  <span className="w-16 font-semibold capitalize">
+                    {s.agent}
+                  </span>
+                  <span className={STEP_TONE[s.status] ?? "text-soft"}>
+                    {s.status}
+                  </span>
+                  <span className="ml-auto font-mono text-muted">
+                    {s.ms >= 1000
+                      ? `${(s.ms / 1000).toFixed(1)}s`
+                      : `${s.ms}ms`}
+                  </span>
                 </div>
-                {s.note && <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted">{s.note}</div>}
+                {s.note && (
+                  <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted">
+                    {s.note}
+                  </div>
+                )}
               </li>
             ))}
           </ol>
@@ -485,12 +891,22 @@ export function AgentTrace({ traces }: { traces: Trace[] }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <div className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">{text}</div>;
+  return (
+    <div className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">
+      {text}
+    </div>
+  );
 }
 
 /* ---------- goal banner ---------- */
 
-export function GoalBanner({ goal, meta }: { goal: (Goal & { at: number }) | null; meta: Meta | null }) {
+export function GoalBanner({
+  goal,
+  meta,
+}: {
+  goal: (Goal & { at: number }) | null;
+  meta: Meta | null;
+}) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     if (!goal) return;
@@ -504,10 +920,16 @@ export function GoalBanner({ goal, meta }: { goal: (Goal & { at: number }) | nul
   return (
     <div className="goal-flash pointer-events-none absolute inset-0 grid place-items-center">
       <div className="text-center">
-        <div className="goal-word text-[min(14cqw,120px)] font-extrabold italic leading-none tracking-tight" style={{ color: "white", textShadow: `0 0 40px ${color}` }}>
+        <div
+          className="goal-word text-[min(14cqw,120px)] font-extrabold italic leading-none tracking-tight"
+          style={{ color: "white", textShadow: `0 0 40px ${color}` }}
+        >
           GOAL
         </div>
-        <div className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold" style={{ background: color }}>
+        <div
+          className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
+          style={{ background: color }}
+        >
           {playerName(meta, goal.player)} · {club} · {goal.minute}'
         </div>
       </div>
@@ -526,13 +948,20 @@ export function ScoresTicker({ league }: { league: League | null }) {
       </span>
       <div className="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto px-4">
         {league.scores.map((s) => (
-          <span key={s.id} className="flex shrink-0 items-center gap-2 font-medium">
+          <span
+            key={s.id}
+            className="flex shrink-0 items-center gap-2 font-medium"
+          >
             <span>{s.home}</span>
             <span className="rounded bg-white/10 px-1.5 font-mono">
               {s.home_goals}-{s.away_goals}
             </span>
             <span>{s.away}</span>
-            <span className={`font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}>{s.finished ? "FT" : `${s.minute}'`}</span>
+            <span
+              className={`font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}
+            >
+              {s.finished ? "FT" : `${s.minute}'`}
+            </span>
           </span>
         ))}
       </div>
@@ -540,13 +969,22 @@ export function ScoresTicker({ league }: { league: League | null }) {
   );
 }
 
-export function LeagueTable({ league, highlight }: { league: League | null; highlight: string[] }) {
-  if (!league) return <Empty text="The live table appears when the matchday kicks off." />;
+export function LeagueTable({
+  league,
+  highlight,
+}: {
+  league: League | null;
+  highlight: string[];
+}) {
+  if (!league)
+    return <Empty text="The live table appears when the matchday kicks off." />;
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
         <div className="text-[13px] font-semibold">{league.league}</div>
-        <div className="text-[11px] uppercase tracking-[0.12em] text-muted">Live table · MD{league.matchday}</div>
+        <div className="text-[11px] uppercase tracking-[0.12em] text-muted">
+          Live table · MD{league.matchday}
+        </div>
       </div>
       <table className="w-full text-[13px]">
         <thead>
@@ -560,34 +998,71 @@ export function LeagueTable({ league, highlight }: { league: League | null; high
         </thead>
         <tbody>
           {league.table.map((r) => (
-            <tr key={r.code} className={`border-t border-line ${highlight.includes(r.code) ? "bg-accent/10" : ""}`}>
+            <tr
+              key={r.code}
+              className={`border-t border-line ${highlight.includes(r.code) ? "bg-accent/10" : ""}`}
+            >
               <td className="py-1.5 font-mono">
                 {r.pos}
-                {!!r.moved && <span className={`ml-0.5 text-[10px] ${r.moved > 0 ? "text-good" : "text-bad"}`}>{r.moved > 0 ? "▲" : "▼"}</span>}
+                {!!r.moved && (
+                  <span
+                    className={`ml-0.5 text-[10px] ${r.moved > 0 ? "text-good" : "text-bad"}`}
+                  >
+                    {r.moved > 0 ? "▲" : "▼"}
+                  </span>
+                )}
               </td>
               <td className="py-1.5">
                 <span className="flex items-center gap-2">
-                  <i className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
-                  <span className={highlight.includes(r.code) ? "font-semibold" : ""}>{r.name}</span>
+                  <i
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: r.color }}
+                  />
+                  <span
+                    className={
+                      highlight.includes(r.code) ? "font-semibold" : ""
+                    }
+                  >
+                    {r.name}
+                  </span>
                 </span>
               </td>
-              <td className="py-1.5 text-right font-mono text-soft">{r.played}</td>
-              <td className="py-1.5 text-right font-mono text-soft">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
-              <td className="py-1.5 text-right font-mono font-semibold">{r.points}</td>
+              <td className="py-1.5 text-right font-mono text-soft">
+                {r.played}
+              </td>
+              <td className="py-1.5 text-right font-mono text-soft">
+                {r.gd > 0 ? `+${r.gd}` : r.gd}
+              </td>
+              <td className="py-1.5 text-right font-mono font-semibold">
+                {r.points}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="mt-4 mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Matchday {league.matchday}</div>
+      <div className="mt-4 mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+        Matchday {league.matchday}
+      </div>
       <div className="space-y-1.5">
         {league.scores.map((s) => (
-          <div key={s.id} className="flex items-center justify-between rounded-lg border border-line bg-panel-2/60 px-3 py-2 text-[13px]">
-            <span className="min-w-0 flex-1 truncate">{league.table.find((r) => r.code === s.home)?.name}</span>
+          <div
+            key={s.id}
+            className="flex items-center justify-between rounded-lg border border-line bg-panel-2/60 px-3 py-2 text-[13px]"
+          >
+            <span className="min-w-0 flex-1 truncate">
+              {league.table.find((r) => r.code === s.home)?.name}
+            </span>
             <span className="mx-2 shrink-0 font-mono font-semibold">
               {s.home_goals} - {s.away_goals}
             </span>
-            <span className="min-w-0 flex-1 truncate text-right">{league.table.find((r) => r.code === s.away)?.name}</span>
-            <span className={`w-9 text-right font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}>{s.finished ? "FT" : `${s.minute}'`}</span>
+            <span className="min-w-0 flex-1 truncate text-right">
+              {league.table.find((r) => r.code === s.away)?.name}
+            </span>
+            <span
+              className={`w-9 text-right font-mono text-[11px] ${s.finished ? "text-muted" : "text-good"}`}
+            >
+              {s.finished ? "FT" : `${s.minute}'`}
+            </span>
           </div>
         ))}
       </div>
@@ -597,28 +1072,52 @@ export function LeagueTable({ league, highlight }: { league: League | null; high
 
 /* ---------- player card ---------- */
 
-export function PlayerCard({ stats, meta }: { stats: PlayerStats | null; meta: Meta | null }) {
+export function PlayerCard({
+  stats,
+  meta,
+}: {
+  stats: PlayerStats | null;
+  meta: Meta | null;
+}) {
   if (!stats) return null;
   const color = clubColor(meta, stats.team);
   const items = [
     ["Passes", stats.passes],
-    ["Accuracy", stats.pass_accuracy_pct != null ? `${stats.pass_accuracy_pct}%` : "–"],
-    ["Distance", stats.distance_m != null ? `${(stats.distance_m / 1000).toFixed(1)} km` : "–"],
-    ["Top speed", stats.top_speed_kmh ? `${stats.top_speed_kmh.toFixed(1)} km/h` : "–"],
+    [
+      "Accuracy",
+      stats.pass_accuracy_pct != null ? `${stats.pass_accuracy_pct}%` : "–",
+    ],
+    [
+      "Distance",
+      stats.distance_m != null
+        ? `${(stats.distance_m / 1000).toFixed(1)} km`
+        : "–",
+    ],
+    [
+      "Top speed",
+      stats.top_speed_kmh ? `${stats.top_speed_kmh.toFixed(1)} km/h` : "–",
+    ],
     ["Shots", stats.shots],
     ["Goals", stats.goals],
   ];
   return (
     <div className="rise pointer-events-none absolute right-[2%] top-[4%] w-[190px] overflow-hidden rounded-lg bg-[rgba(7,11,20,.86)] ring-1 ring-white/10 backdrop-blur-md">
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: `3px solid ${color}` }}>
+      <div
+        className="flex items-center gap-2 px-3 py-2"
+        style={{ borderTop: `3px solid ${color}` }}
+      >
         <span className="text-[13px] font-semibold">{stats.name}</span>
-        <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-muted">{stats.team}</span>
+        <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-muted">
+          {stats.team}
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-2.5">
         {items.map(([k, v]) => (
           <div key={k as string}>
             <div className="font-mono text-[13px]">{v}</div>
-            <div className="text-[9px] uppercase tracking-[0.12em] text-muted">{k}</div>
+            <div className="text-[9px] uppercase tracking-[0.12em] text-muted">
+              {k}
+            </div>
           </div>
         ))}
       </div>
@@ -628,7 +1127,17 @@ export function PlayerCard({ stats, meta }: { stats: PlayerStats | null; meta: M
 
 /* ---------- recap ---------- */
 
-export function RecapCard({ card, meta, voice, lang }: { card: Overlay | undefined; meta: Meta | null; voice: boolean; lang: string }) {
+export function RecapCard({
+  card,
+  meta,
+  voice,
+  lang,
+}: {
+  card: Overlay | undefined;
+  meta: Meta | null;
+  voice: boolean;
+  lang: string;
+}) {
   const [shown, setShown] = useState<Overlay | undefined>();
   useEffect(() => {
     if (!card) return;
@@ -639,7 +1148,10 @@ export function RecapCard({ card, meta, voice, lang }: { card: Overlay | undefin
   }, [card?.overlay_id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!shown || !meta) return null;
   const c = shown.content;
-  const score = (c.evidence as { metric: string; value: string }[]).find((e) => e.metric === "score")?.value ?? "";
+  const score =
+    (c.evidence as { metric: string; value: string }[]).find(
+      (e) => e.metric === "score",
+    )?.value ?? "";
   const [, hg, ag] = score.match(/(\d+)-(\d+)/) ?? [];
   return (
     <div className="rise absolute inset-0 grid place-items-center bg-black/55 backdrop-blur-[2px]">
@@ -647,14 +1159,22 @@ export function RecapCard({ card, meta, voice, lang }: { card: Overlay | undefin
         <div className="flex items-center justify-between border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
           <span className="text-warn">{momentLabel(c.moment_type)}</span>
           <span className="flex items-center gap-1 text-good">
-            <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 12 12"
+              className="h-2.5 w-2.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M2 6.5 5 9l5-6" />
             </svg>
             Verified
           </span>
         </div>
         <div className="flex items-center justify-center gap-5 px-5 pt-5">
-          <span className="text-right text-[15px] font-semibold">{meta.home.name}</span>
+          <span className="text-right text-[15px] font-semibold">
+            {meta.home.name}
+          </span>
           <span className="font-mono text-4xl">
             {hg ?? "-"} : {ag ?? "-"}
           </span>
@@ -665,6 +1185,145 @@ export function RecapCard({ card, meta, voice, lang }: { card: Overlay | undefin
           <p className="mt-2 text-[14px] leading-relaxed text-soft">{c.body}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------- ask pitchside ---------- */
+
+type QA = {
+  q: string;
+  a?: string;
+  verified?: boolean;
+  checked?: number;
+  pending?: boolean;
+};
+
+export function AskPanel({
+  matchKey,
+  lang,
+  profile,
+  suggestions,
+  voice,
+}: {
+  matchKey: string | null;
+  lang: string;
+  profile: string;
+  suggestions: string[];
+  voice: boolean;
+}) {
+  const [log, setLog] = useState<QA[]>([]);
+  const [text, setText] = useState("");
+  const busy = log.some((x) => x.pending);
+
+  async function ask(q: string) {
+    if (!q.trim() || !matchKey || busy) return;
+    setText("");
+    setLog((l) => [...l, { q, pending: true }]);
+    try {
+      const r = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_key: matchKey,
+          question: q,
+          lang,
+          profile,
+        }),
+      }).then((x) => x.json());
+      const checked = (r.steps ?? []).filter(
+        (s: { agent: string }) => s.agent === "verifier",
+      ).length;
+      setLog((l) =>
+        l.map((x) =>
+          x.q === q && x.pending
+            ? { q, a: r.answer, verified: r.verified, checked }
+            : x,
+        ),
+      );
+      if (voice && r.verified) speak(r.answer, lang);
+    } catch {
+      setLog((l) =>
+        l.map((x) =>
+          x.q === q && x.pending
+            ? { q, a: "Couldn't reach the studio. Try again.", verified: false }
+            : x,
+        ),
+      );
+    }
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="text-[13px] font-semibold">Ask the studio</div>
+      <div className="mb-3 text-[12px] text-muted">
+        The Pundit agent answers from live match data. Every number is checked
+        before you see it.
+      </div>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {suggestions.map((s) => (
+          <button
+            key={s}
+            onClick={() => ask(s)}
+            disabled={busy || !matchKey}
+            className="rounded-full border border-line bg-panel-2/60 px-3 py-1 text-[12px] text-soft transition-colors hover:border-accent hover:text-white disabled:opacity-40"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+        {log.map((x, i) => (
+          <div key={i} className="rise space-y-1.5">
+            <div className="ml-8 rounded-lg rounded-br-sm bg-accent/15 px-3 py-2 text-[13px]">
+              {x.q}
+            </div>
+            <div className="mr-4 rounded-lg rounded-bl-sm border border-line bg-panel-2/60 px-3 py-2 text-[13px] leading-relaxed text-soft">
+              {x.pending ? (
+                <span className="flex items-center gap-2 text-muted">
+                  <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />{" "}
+                  Pundit is checking the numbers…
+                </span>
+              ) : (
+                <>
+                  {x.a}
+                  <div
+                    className={`mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${x.verified ? "text-good" : "text-warn"}`}
+                  >
+                    {x.verified
+                      ? `✓ Verified${x.checked && x.checked > 1 ? " after a rewrite" : ""}`
+                      : "Not verified"}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          ask(text);
+        }}
+      >
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={
+            matchKey
+              ? "Ask about the match, a player or the table…"
+              : "Kick off to ask questions"
+          }
+          className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent"
+        />
+        <button
+          disabled={busy || !text.trim()}
+          className="rounded-lg bg-accent px-3 text-[13px] font-semibold text-ink disabled:opacity-40"
+        >
+          Ask
+        </button>
+      </form>
     </div>
   );
 }

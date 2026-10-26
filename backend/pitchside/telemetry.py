@@ -42,8 +42,9 @@ def setup() -> bool:
         "httpx",
         "httpcore",
         "urllib3",
+        "openai",
         "opentelemetry",
-        "agent_framework._workflows",
+        "agent_framework",
     ):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     _done = True

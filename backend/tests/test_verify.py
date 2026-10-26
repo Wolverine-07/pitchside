@@ -96,3 +96,16 @@ def test_late_is_only_allowed_late_in_the_match():
     assert check_context("Late scramble on the pitch", 62)
     assert not check_context("Late scramble on the pitch", 86)
     assert not check_context("A late tackle stops the break", 20)
+
+
+def test_recaps_may_mention_goal_minutes():
+    from pitchside.agents.verify import verify
+
+    facts = {
+        "moment": {
+            "minute": 90,
+            "evidence": [{"metric": "goal_minute", "value": 68, "team": "KSC", "player": "KSC-09"}],
+        }
+    }
+    assert verify("The goal in the 68th minute turned it", facts, {}, live=False)
+    assert not verify("A goal in the 77th minute turned it", facts, {}, live=False)

@@ -35,8 +35,19 @@ class StatsTools:
         return self.state.team_metrics(team.upper(), window_s)
 
     def player_summary(self, player_id: str) -> dict:
-        """Passes, pass accuracy, shots, xG, goals, assists, regains, distance covered and top speed for a player id like KSC-09."""
-        return self.state.player_summary(player_id.upper())
+        """Passes, pass accuracy, shots, xG, goals, assists, regains, distance covered and top speed for a player.
+        Takes an id like KSC-09 or a name like 'Wexavi'."""
+        return self.state.player_summary(self.resolve_player(player_id))
+
+    def resolve_player(self, key: str) -> str:
+        key = key.strip()
+        if key.upper() in self.state.names:
+            return key.upper()
+        low = key.lower()
+        for pid, name in self.state.names.items():
+            if low == name.lower() or low == name.split()[-1].lower():
+                return pid
+        return key.upper()
 
     def chaos_index(self, window_s: int = 300) -> dict:
         """Control (0) vs chaos (1) over the last window_s seconds, from turnovers, possession length and duels."""
