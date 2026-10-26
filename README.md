@@ -4,7 +4,7 @@
 
 Pitchside watches a synthetic football match event by event, works out which moments matter and why, checks every number before it goes on screen, and tells the story differently for each viewer: analyst or casual fan, your club, your player, in English, Hindi or Spanish.
 
-Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Microsoft Agent Framework, MCP and Azure Container Apps.
+Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Microsoft Agent Framework, MCP, Azure Container Apps and Azure AI Speech.
 
 - **Live app:** https://pitchside-web.mangostone-cc37c1d4.polandcentral.azurecontainerapps.io (pick a club and a player, choose 5x speed, kick off; the first load can take ~20 s while the container wakes up)
 - **Demo video:** _link coming_
@@ -23,7 +23,7 @@ One pipeline, five stages, as the challenge asks:
 2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo and a control vs chaos index. It flags candidate moments with a significance score and the evidence behind each one.
 3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools.
 4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer.
-5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club and a chosen player, then localized into Hindi and Spanish.
+5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club and a chosen player, localized into Hindi and Spanish, and read aloud by Azure AI Speech neural voices.
 
 ## How it works
 
@@ -64,12 +64,24 @@ Shared state is one `MatchState` per match. Each live match gets its own key, an
 
 ## Results
 
-I ran the same five seeded matches (102 moments) through two setups with the same model (`gpt-4.1-mini`) and the same stats tools: one agent writing each caption directly, and the Pitchside agent team. [`evals/ab_test.py`](backend/evals/ab_test.py), raw output in `backend/evals/results.json`.
+I tested the agent team against a single agent: same model (`gpt-4.1-mini`), same stats tools, same five seeded matches (104 moments). One agent writes each caption in one go; Pitchside runs its full workflow. Scripts: [`evals/ab_test.py`](backend/evals/ab_test.py) and [`evals/foundry_eval.py`](backend/evals/foundry_eval.py); raw output in `backend/evals/`.
 
-- **Wrong numbers:** neither setup stated a number the stats engine didn't have. Both were grounded on numbers, so I'm not claiming an accuracy gap there.
-- **What the team adds:** the Verifier sent back 15 drafts across the five matches (wrong time references, a team's pressing credited to one player, singular club verbs); all were rewritten correctly, and 2 moments fell back to templates. The team also produces four viewer versions in three languages per moment, which a single caption can't.
-- **Cost:** about 8.4 s per moment for the team vs 1.2 s for one agent. Live play absorbs this by running moments in parallel.
-- **Foundry evaluations** (groundedness, relevance, coherence, fluency) on both sides: _results being added_.
+| | Single agent | Pitchside team |
+| --- | --- | --- |
+| Wrong numbers (checked against the stats engine) | 0 / 104 | 0 / 104 |
+| Foundry groundedness | 103 / 104 | 102 / 104 |
+| Foundry relevance / coherence | 104 / 104 | 104 / 104 |
+| Foundry fluency | 104 / 104 | 100 / 104 |
+| Broke broadcast style rules (mostly "at 55 minutes") | 18 / 104 | 0 / 104 |
+| Versions per moment | 1 caption, English | 4 audiences x 3 languages |
+| Drafts sent back by the Verifier | n/a | 29 (6 fell back to templates) |
+| Time per moment | 1.2 s | 8.8 s |
+
+What I take from this:
+
+- **On accuracy the two are level.** With the same tools, a single agent didn't invent numbers either, so I'm not claiming the team is more accurate. The team passes the style rules by construction, because its Verifier enforces them.
+- **The team earns its extra 7 seconds by doing more:** an explanation of why the moment matters, four audience versions in three languages, a checked trace for every caption, and a safe fallback when the model misbehaves. Live play absorbs the time by handling moments in parallel.
+- **Foundry evaluations made the team better.** The first run scored the team at 91/102 for groundedness against 100/102 for the single agent: the Narrator and Persona agents were embellishing ("lifting spirits", "a wild spell", "after the half-hour" in the 53rd minute). That led to the audience rules, minute checks and stricter player mode; the re-run scored 102/104.
 
 ## Brief coverage
 
@@ -97,7 +109,7 @@ Everything is synthetic, with made-up clubs and players. The simulator is a poss
 ```bash
 cd backend
 uv sync
-uv run pytest                                   # 29 tests
+uv run pytest                                   # 32 tests
 PITCHSIDE_PROVIDER=templates uv run python -m pitchside.run   # whole match, no model needed
 cp .env.example .env                            # add your Foundry endpoint, deployment and key
 uv run uvicorn pitchside.api:app --port 8000
@@ -118,13 +130,12 @@ Things I hit on an Azure for Students subscription: ACR Tasks are blocked (so th
 ## Limitations and next steps
 
 - The event stream runs in-process; the next step is Azure Event Hubs between the simulator and the stats engine so several consumers can share one match.
-- Spoken commentary uses the browser's speech engine; Azure AI Speech neural voices are the planned upgrade.
 - Auto-eventing from video (running a pose and ball detection model over a feed) is out of scope for this build.
 - The Verifier's style checks are rules; some wording slips through (for example a wrong time reference it doesn't have a rule for yet).
 
 ## Acknowledgements
 
-Built with Microsoft Foundry, Microsoft Agent Framework, Azure Container Apps, Application Insights and the Model Context Protocol. I used Claude Code as a coding assistant during the build.
+Built with Microsoft Foundry, Microsoft Agent Framework, Azure Container Apps, Application Insights, Azure AI Speech and the Model Context Protocol. I used Claude Code as a coding assistant during the build.
 
 ## License
 

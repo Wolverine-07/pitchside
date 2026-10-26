@@ -104,6 +104,13 @@ class Broadcast:
                 batch, self.pending, self.last_batch_ms = self.pending, [], ev["t_ms"]
                 if workers:
                     batches.put_nowait((batch, ev["match_id"]))
+                    yield {
+                        "kind": "pending",
+                        "moments": [
+                            {"id": j.moment.id, "type": j.moment.type, "minute": j.moment.minute}
+                            for j in batch
+                        ],
+                    }
                 else:
                     async for item in self.flush(batch, ev["match_id"]):
                         yield item

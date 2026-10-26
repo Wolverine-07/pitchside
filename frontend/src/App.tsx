@@ -9,6 +9,7 @@ import {
   Momentum,
   Pitch,
   Scoreboard,
+  momentLabel,
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
 import { type Settings, useMatch } from "./useMatch";
@@ -185,6 +186,12 @@ export default function App() {
                 </button>
               ))}
             </div>
+            {view.pending.length > 0 && (
+              <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2 text-[12px] text-soft">
+                <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
+                Agents writing: {view.pending.slice(-2).map((p) => `${momentLabel(p.type)} ${p.minute}'`).join(", ")}
+              </div>
+            )}
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {tab === "commentary" ? (
                 <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />

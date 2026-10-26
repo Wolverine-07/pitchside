@@ -26,6 +26,7 @@ export type MatchView = {
   traces: Trace[];
   feed: MatchEvent[];
   onPitch: string[];
+  pending: { id: string; type: string; minute: number }[];
 };
 
 const EMPTY: MatchView = {
@@ -42,6 +43,7 @@ const EMPTY: MatchView = {
   traces: [],
   feed: [],
   onPitch: [],
+  pending: [],
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -129,8 +131,15 @@ function reduce(v: MatchView, item: any): MatchView {
       if (o.type === "player_tag") return { ...v, tags: [...v.tags.slice(-4), o] };
       return { ...v, cards: [...v.cards, o] };
     }
+    case "pending":
+      return { ...v, pending: [...v.pending, ...item.moments] };
     case "trace":
-      return { ...v, traces: [item.trace, ...v.traces].slice(0, 40) };
+      // Every moment in a batch has been handled once any trace for that batch arrives.
+      return {
+        ...v,
+        traces: [item.trace, ...v.traces].slice(0, 40),
+        pending: v.pending.filter((p) => p.id !== item.trace.moment_id && p.minute > item.trace.minute),
+      };
     case "done":
       return { ...v, status: "done" };
     default:
