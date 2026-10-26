@@ -120,6 +120,22 @@ export function Pitch({ meta, trail, tags, clockMs, onPitch, focus, children }: 
   );
 }
 
+let current: HTMLAudioElement | null = null;
+
+/** Azure AI Speech neural voice from the API; the browser's own voice if that is unavailable. */
+function speak(text: string, lang: string) {
+  current?.pause();
+  const audio = new Audio(`/api/speak?lang=${lang}&text=${encodeURIComponent(text)}`);
+  current = audio;
+  audio.play().catch(() => {
+    if (!("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = ({ en: "en-GB", hi: "hi-IN", es: "es-ES" } as Record<string, string>)[lang] ?? "en-GB";
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  });
+}
+
 /** Shows the newest card for the viewer's profile for a few seconds, like a lower third. */
 export function InsightCard({ card, voice, lang, meta }: { card: Overlay | undefined; voice: boolean; lang: string; meta: Meta | null }) {
   const [shown, setShown] = useState<Overlay | undefined>();
@@ -129,12 +145,7 @@ export function InsightCard({ card, voice, lang, meta }: { card: Overlay | undef
     setShown(card);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setShown(undefined), 9000);
-    if (voice && "speechSynthesis" in window) {
-      const u = new SpeechSynthesisUtterance(card.content.body);
-      u.lang = { en: "en-GB", hi: "hi-IN", es: "es-ES" }[lang] ?? "en-GB";
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
-    }
+    if (voice) speak(card.content.body, lang);
   }, [card?.overlay_id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!shown) return null;
   const c = shown.content;

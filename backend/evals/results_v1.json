@@ -1,0 +1,2195 @@
+{
+  "summary": {
+    "moments": 102,
+    "single_agent": {
+      "wrong_number_pct": 0.0,
+      "wrong_name_pct": 0.0,
+      "wrong_context_pct": 0.0,
+      "any_error_pct": 0.0,
+      "avg_seconds": 1.2
+    },
+    "pitchside": {
+      "wrong_number_pct": 0.0,
+      "wrong_name_pct": 0.0,
+      "wrong_context_pct": 0.0,
+      "any_error_pct": 0.0,
+      "drafts_caught_by_verifier": 15,
+      "template_fallbacks": 2,
+      "avg_seconds": 8.4
+    }
+  },
+  "matches": [
+    {
+      "seed": 16,
+      "storyline": "comeback",
+      "moments": [
+        {
+          "seed": 16,
+          "minute": 5,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings to RVA. After a significant drop, RVA gains the momentum edge with a 78-point swing in the last 3 minutes.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside Athletic take early grip. Riverside Athletic are buzzing early on, with just under a third of the ball but flawless passing, turning the game their way in the opening five minutes.",
+            "seconds": 8.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 5,
+          "type": "goal",
+          "single": {
+            "text": "Dario Pellello Scores Early Goal. RVA takes the lead 1-0 with a powerful 76.5 km/h shot, setting the tone at 5 minutes.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello scores with a fierce strike. Riverside Athletic take the lead after just five minutes, keeping their play smooth and perfect in passing.",
+            "seconds": 6.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 10,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Game Turns Chaotic Early. High chaos index of 0.691 and 18 turnovers in last 5 minutes signal intensified game unpredictability at 10 minutes.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "End of match frenzy with many errors. Kingsport City and Riverside Athletic struggle to keep control, throwing away the ball 18 times in the last five minutes.",
+            "seconds": 8.3,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 14,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance Missed by Lunino. Niko Lunino's powerful off-target shot at 14 minutes reflects a high xG opportunity that could have shifted momentum.",
+            "seconds": 1.7,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Lunino flashes a strong shot. Kingsport keep their cool with perfect passes even under pressure, but Lunino\u2019s fierce shot zooms wide of the goal.",
+            "seconds": 8.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 20,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts Strongly to KSC. KSC gains significant control with a +72 momentum change, shaping the game's next phase.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City seize control at 20 minutes. KSC leads with 63% possession and 0.8 xG, pressing hard to find an equaliser early in the half.",
+            "seconds": 8.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 24,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Spike at Minute 24. The game has turned chaotic with a high chaos index of 0.683 and 20 turnovers in the last 5 minutes.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Chaos breaks loose near 24th minute. The pitch turns hectic with many scrambles and 20 turnovers in just five minutes, shaking up the flow of the game.",
+            "seconds": 6.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 30,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Sharply to RVA. RVA gains significant momentum advantage with an 86-point swing, shifting control and intensity in their favor.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside step up the pressure. Riverside Athletic are pressing Kingsport City more and more, causing chaos and breaking their rhythm.",
+            "seconds": 9.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 40,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Ari Wexavi. KSC's Ari Wexavi receives a caution at the 40th minute, impacting team strategy and player aggression.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Yellow card for Wexavi in the 40th minute. Kingsport City are holding strong with crisp passing as Riverside Athletic press hard and unrelenting.",
+            "seconds": 6.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 41,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to KSC. KSC gains a strong momentum swing in the 41st minute, boosting their chances going into halftime.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City take control. Kingsport City set the pace with a steady rhythm and calm play at 41 minutes, turning the game clearly in their favour.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 45,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shift Towards RVA. RVA gains a significant momentum swing, shifting the game's control in their favor right before halftime.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside finish half in control. In the final three minutes before half-time, Riverside keep the ball with impressive precision, making 91% of their passes to steer the game their way.",
+            "seconds": 9.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 55,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance for Sol Kasume. Sol Kasume's powerful shot was saved, presenting a crucial scoring opportunity in the 55th minute for KSC.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kasume's strong effort saved. Kingsport City almost take the lead in the 55th minute as Kasume fires a quick shot that the Riverside keeper brilliantly saves.",
+            "seconds": 6.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 57,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Strongly to KSC. KSC gains significant momentum boost, shifting control and increasing their chances of dominating the match.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Momentum shifts to kingsport city. Kingsport City shows 100% pass accuracy under pressure and higher pass difficulty at 57 minutes.",
+            "seconds": 11.7,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 62,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts at 62nd Minute. High chaos index of 0.685 with 19 turnovers signals a sharp shift in game intensity and unpredictability.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Turning point in frantic finale. The last five minutes have been all over the place, with 19 times the ball changes hands, shaking up both Kingsport City and Riverside Athletic.",
+            "seconds": 6.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 66,
+          "type": "pressing_spell",
+          "single": {
+            "text": "RVA Dominates with Intense Pressing. RVA recovers possession 3 times in 90 seconds deep in KSC's half, increasing pressure and control in this crucial phase.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside put pressure on Kingsport. In 90 seconds around the 66th minute, Riverside win the ball three times deep in Kingsport's half, showing their determination to take control.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 67,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to RVA. RVA gains a significant momentum swing, increasing their chances to control the game moving forward.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside Athletic take the upper hand. By the 67th minute, Riverside are showing the stronger play, despite Kingsport City holding just over half the ball.",
+            "seconds": 8.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 68,
+          "type": "goal",
+          "single": {
+            "text": "Ari Wexavi Levels the Score. Wexavi's powerful 100.6 km/h shot ties the match at 1-1, shifting momentum towards KSC in the 68th minute.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Wexavi's equaliser brings hope. In a wild spell, Wexavi scores at 68 minutes to level the game for Kingsport City, lifting spirits as the play races with 8.4 passes each minute.",
+            "seconds": 7.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 71,
+          "type": "goal",
+          "single": {
+            "text": "Velino's Goal Puts KSC Ahead. Tavi Velino's goal at 71' gives KSC a critical 2-1 lead over RVA, shifting momentum decisively.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Velino puts Kingsport ahead. Tavi Velino scores in the 71st minute to give Kingsport the lead, following a strong spell with 66% possession.",
+            "seconds": 7.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 86,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Game Turns Chaotic Late On. High chaos index and numerous turnovers indicate intense, unpredictable play in the 86th minute, raising tension for both teams.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Chaotic finish unsettles both sides. The closing five minutes erupt into disorder, with 18 costly turnovers scrambling control and leaving both teams on edge.",
+            "seconds": 8.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 16,
+          "minute": 89,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC Dominates in Final Minutes. KSC's high pressing yields 3 ball recoveries in 90 seconds, increasing pressure on RVA nearing full time.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport\u2019s pressing pays off. Kingsport City snatch back the ball five times in a thrilling 90 seconds, forcing Riverside into errors high up the pitch.",
+            "seconds": 8.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "storyline": "none",
+      "moments": [
+        {
+          "seed": 3,
+          "minute": 3,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Tavi Sarard. Early yellow card for KSC's Tavi Sarard could impact his team's defensive stability and aggression.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Early booking shakes Kingsport defence. Sarard gets a yellow card just 3 minutes in, meaning Kingsport must be careful with their tackles from the start.",
+            "seconds": 5.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 4,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shift Towards RVA Early. RVA gains significant momentum advantage within the first 4 minutes, impacting the game's early dynamics.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take the upper hand. Riverside have been pressing hard in the last three minutes, keeping the ball well and troubling Kingsport who can\u2019t seem to get a grip on the game.",
+            "seconds": 9.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 14,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts Sharply to KSC. KSC gains a significant momentum boost with an 82-point change, dominating the last 3 minutes of play.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City find their rhythm. Though trailing in possession, Kingsport City are really turning the tide around the 14th minute, building strong momentum on the pitch.",
+            "seconds": 7.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 15,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Bram Velsby. Bram Velsby receives a yellow card, impacting RVA's defensive strategy early in the first half.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Early booking for Riverside's Velsby. Velsby gets a yellow card in the 15th minute, a warning for Riverside to keep their cool and avoid trouble later on.",
+            "seconds": 6.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 24,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Toward RVA. Significant momentum shift favoring RVA could impact play dynamics and opportunites in the match's 24th minute.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside surge with swift counter. Riverside take charge with two key regains and strong defence forcing the momentum their way in just three minutes.",
+            "seconds": 8.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 29,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Strongly to KSC. KSC has gained a significant momentum boost at minute 29, shifting the game's balance in their favor.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City building strong momentum. In the last three minutes, Kingsport City keep their passes sharp, sparking a big change in the game\u2019s flow at the 29th minute.",
+            "seconds": 9.4,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 36,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Game Turns Chaotic at 36th Minute. Chaos index spikes to 0.682 with 18 turnovers, indicating a highly unsettled phase in the match.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City struggle to keep control. Kingsport City lose the ball 18 times as their usual quick passing slows down, making the game feel more chaotic.",
+            "seconds": 10.8,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 48,
+          "type": "goal",
+          "single": {
+            "text": "Pellello Scores Stunning Goal. Dario Pellello nets a powerful 96.4 km/h shot to give RVA a 1-0 lead early in the second half.",
+            "seconds": 1.4,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Goal, Riverside Athletic. Goal for Riverside Athletic. Dario Pellello scores, and it's KSC 0-1 RVA.",
+            "seconds": 8.0,
+            "drafts_rejected": 2,
+            "template": true,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 51,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to KSC. KSC gains a strong advantage in momentum at 51 minutes, signaling potential control and attacking opportunities.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City turn the tide. Kingsport City push hard after falling behind, seizing control with a huge burst of momentum in just three minutes.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 55,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Spikes at Minute 55. The game has turned chaotic with a high chaos index of 0.683 and 18 turnovers in the last 5 minutes.",
+            "seconds": 1.4,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Intense end sees 18 rapid turnovers. The last five minutes at Kingsport City have been hectic, with possession swapping hands 18 times in a breathless finish.",
+            "seconds": 8.3,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 71,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Surges in RVA's Lead. RVA leads 1-0 as chaos spikes, showing intense pressure and 18 turnovers in the last 5 minutes.",
+            "seconds": 2.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Tension builds in frantic final stretch. With 18 turnovers in the last five minutes, Kingsport City and Riverside Athletic struggle to keep control as the pressure mounts.",
+            "seconds": 6.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 75,
+          "type": "big_chance",
+          "single": {
+            "text": "Fenier's Big Chance Blocked. Eli Fenier's powerful 102.8 km/h shot was blocked, denying RVA a crucial scoring opportunity in the 75th minute.",
+            "seconds": 1.5,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside miss a swift chance. Fenier fires a quick shot, but it's blocked as Riverside keep control with steady possession and a low press.",
+            "seconds": 8.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 84,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Sharply to RVA. RVA gains a significant momentum advantage late in the 84th minute, shifting game dynamics dramatically.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside turns the tide late. Riverside\u2019s fierce pressure has pushed Kingsport back in the last few minutes, turning the momentum firmly in their favour.",
+            "seconds": 10.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 88,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC Intense Pressing in Final Minutes. KSC win ball back 3 times in 90 seconds, applying intense pressure in RVA's half late in the match.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City storm back the ball. Kingsport City press high and win the ball three times in a minute and a half on Riverside's half, showing real fight and energy.",
+            "seconds": 8.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 90,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Surges in Final Minutes. The match has become highly chaotic with a chaos index of 0.687 and 18 turnovers in the last 5 minutes.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Turnover troubles for Riverside. In the last five minutes, Riverside Athletic lose the ball 18 times, with their passes under pressure going astray more than a third of the time.",
+            "seconds": 10.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 3,
+          "minute": 90,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Eli Fenier. Eli Fenier receives a yellow card in the 90th minute, impacting RVA's defensive approach late in the match.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Yellow card stirs Riverside tension. With Fenier booked, Riverside\u2019s struggle to regain control is clear as the chaos rises and they manage just six ball wins in the last five minutes.",
+            "seconds": 7.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 7,
+      "storyline": "none",
+      "moments": [
+        {
+          "seed": 7,
+          "minute": 12,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Strongly to KSC. At minute 12, momentum surged 92 points in favor of KSC, indicating a significant shift in control.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City starts firing early. In the 12th minute, Kingsport City are on the front foot with sharp passing and steady control, setting the tone with an 83% pass rate.",
+            "seconds": 10.9,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 16,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Spike Hits at 16 Minutes. High chaos index of 0.682 with 19 turnovers signals a sudden shift to a highly unpredictable game phase.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside losing their grip. Riverside Athletic are struggling to find their flow, making too many mistakes and only managing three passes a minute.",
+            "seconds": 7.3,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 18,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to RVA. RVA gains significant momentum swing at 18 minutes, marking a strong phase in their favor with an 87-point momentum change.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside Athletic turn the tide. Riverside Athletic press hard with sharp passing and five key regains, swinging momentum their way in just three minutes.",
+            "seconds": 10.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 23,
+          "type": "pressing_spell",
+          "single": {
+            "text": "RVA's Intense Pressing Spell. RVA recovers the ball 3 times in 90 seconds deep in KSC's half, showing high defensive pressure.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside turn up the heat. Riverside win the ball three times in a minute and a half, leaving Kingsport struggling with poor passes under tough pressure.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 24,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Surge in Match at 24'. The game turned chaotic with a high chaos index of 0.683 and 20 turnovers in last 5 minutes.",
+            "seconds": 1.4,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside lose their rhythm. In the last five minutes, Riverside Athletic spill the ball 20 times, throwing their play into chaos and losing control on the pitch.",
+            "seconds": 8.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 29,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Toward RVA. RVA gains a significant momentum shift at minute 29, increasing their chances to control the game.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take control in closing moments. In the last three minutes, Riverside Athletic weave crisp passes, never losing the ball even when pressed hard.",
+            "seconds": 8.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 29,
+          "type": "big_chance",
+          "single": {
+            "text": "Femi Ostello's Big Chance Blocked. At 29 minutes, Ostello's shot with 0.4 xG was blocked, denying RVA a crucial scoring opportunity.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside press stifles Kingsport. In the last five minutes, Riverside have blocked a big chance and made two shots, keeping Kingsport under real pressure as the clock winds down.",
+            "seconds": 9.8,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 32,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Luca Quinorne. RVA's Luca Quinorne receives a yellow card, impacting team discipline and game momentum at 32 minutes.",
+            "seconds": 0.9,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Quinorne picks up a caution. Riverside's play is a bit wild right now, and Quinorne's yellow card might make him hold back in defence.",
+            "seconds": 6.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 36,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance Missed by Pellello. Dario Pellello's powerful off-target shot at 36 minutes nearly changed the game's momentum for RVA.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello lets a chance slip. Dario Pellello nearly opens the scoring for Riverside Athletic but his shot misses the target in the 36th minute.",
+            "seconds": 8.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 41,
+          "type": "momentum_swing",
+          "single": {
+            "text": "KSC Gains Momentum Swing. In the 41st minute, KSC's momentum shifted significantly, increasing their chances to control the match.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City take the upper hand. Kingsport City have grabbed control of the game in the last three minutes, keeping their passes sharp and quick under intense pressure.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 42,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance for Pellello Blocked. Dario Pellello's powerful 97.3 km/h shot with 0.3 xG was blocked, missing a key scoring opportunity in the 42nd minute.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello's fierce shot blocked. Riverside nearly scores in the 42nd minute, but Pellello's powerful effort is stopped just in time.",
+            "seconds": 7.3,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 45,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Spike at Halftime. The last five minutes have seen a surge in chaos with a high turnover count, drastically shifting game dynamics.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Chaos spikes with 20 turnovers. The last five minutes see a chaos index of 0.682 with 20 turnovers disrupting the game's rhythm.",
+            "seconds": 9.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 48,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts Favor KSC. KSC gains significant momentum advantage within the last 3 minutes, increasing their chances to control and dominate play.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City take charge early second half. Kingsport City have really stepped up after the break, winning the ball six times and not losing a single pass under pressure in the last three minutes.",
+            "seconds": 7.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 51,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC's Intense Pressing Spell. KSC recovers possession three times in 90 seconds in RVA's half, increasing pressure and disrupting their play.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City press high and hard. In just 90 seconds, Kingsport City win the ball back three times deep in Riverside\u2019s half, turning up the heat on their opponents.",
+            "seconds": 7.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 61,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Bram Velsby. RVA's Bram Velsby receives a yellow card at 61', impacting team discipline and defensive tactics.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Velsby\u2019s yellow at Riverside\u2019s frenzy. At the 61st minute, Velsby\u2019s yellow card cools Riverside\u2019s fierce defending during a chaotic spell on the pitch.",
+            "seconds": 6.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 67,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Trensby. Dario Trensby receives a yellow card in the 67th minute, impacting team KSC's defensive strategy.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport's Trensby sees yellow card. Trensby picks up a yellow, and that might slow Kingsport's usual quick passing and high-energy pressing.",
+            "seconds": 7.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 69,
+          "type": "goal",
+          "single": {
+            "text": "Wexavi Scores Decisive Goal. Ari Wexavi's powerful 86 km/h shot gives KSC a 1-0 lead against RVA in the 69th minute.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Wexavi puts Kingsport ahead. In the 69th minute, Wexavi scores his impressive goal, giving Kingsport City the lead after a neat display of control.",
+            "seconds": 7.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 71,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Kasume. Sol Kasume receives a yellow card, impacting KSC's defensive approach in the crucial 71st minute.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kasume\u2019s yellow cools Kingsport\u2019s fire. When Kasume picked up a yellow card in the 71st minute, Kingsport had to ease off, even though they kept crisp with 91% of their passes finding their mark.",
+            "seconds": 7.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 71,
+          "type": "card",
+          "single": {
+            "text": "Red Card for Sol Kasume!. KSC's Sol Kasume receives a red card in the 71st minute, significantly impacting the team's chances.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport lose Kasume to red card. At 71 minutes, Kingsport face pressure after Kasume's sending off despite 91% passing accuracy.",
+            "seconds": 8.0,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 72,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swing Towards RVA. RVA gains significant momentum shift late in the match, impacting control and potential outcome.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside Athletic seize the day. At 72 minutes, Riverside Athletic heat up the pitch, speeding past Kingsport City with their rhythm and control shifting the game their way.",
+            "seconds": 8.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 78,
+          "type": "card",
+          "single": {
+            "text": "Red Card Disrupts RVA's Strategy. Luca Quinorne's red card at 78 minutes leaves RVA a player down in a crucial match phase.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside face uphill battle now. Red card for Quinorne cuts Riverside's possession and pass tempo amid rising chaos index.",
+            "seconds": 10.1,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 90,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts in Final Minutes. A surge in chaos index to 0.682 with 19 turnovers signals intense and unpredictable play in stoppage time.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Chaos index spikes in final minutes. Chaos index hits 0.682 with 19 turnovers as Kingsport City press Riverside Athletic hard in last five minutes.",
+            "seconds": 10.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 90,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card Shakes Final Minutes. Idris Halsby receives a yellow card at the 90th minute, impacting KSC's defensive approach in the crucial final moments.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Halsby's card adds drama to last minutes. Kingsport City's Halsby picks up a yellow as the match turns chaotic with high tension and press intensity in the final moments.",
+            "seconds": 7.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 7,
+          "minute": 90,
+          "type": "goal",
+          "single": {
+            "text": "Velino Seals KSC Victory. Tavi Velino scores a decisive goal in the 90th minute, cementing KSC's 2-0 win over RVA.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Velino's late strike secures win. In the 90th minute, Velino scores to make it 2-0 for Kingsport City as the match reaches a hectic finale.",
+            "seconds": 8.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 11,
+      "storyline": "none",
+      "moments": [
+        {
+          "seed": 11,
+          "minute": 3,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to RVA Early. RVA gains significant momentum swing, indicating a strong start and potential control in the opening minutes.",
+            "seconds": 0.9,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside Athletic dominate early possession. Riverside hold 74% possession and 83% pass accuracy in the first three minutes, setting the pace on the pitch.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 4,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance for Oli Wexsby. Oli Wexsby\u2019s powerful 67.4 km/h shot was blocked, marking a major scoring opportunity early in the match.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Wexsby makes a crucial early block. Riverside hold the ball well and Wexsby stops a strong shot, keeping the game level in a bright start.",
+            "seconds": 7.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 14,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC Dominates With Intense Pressing. KSC regained possession 3 times in 90 seconds, disrupting RVA's play and showing superior pressure tactics.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport press hard in Riverside half. Kingsport win back the ball three times in just 90 seconds inside Riverside Athletic\u2019s half, turning up the pressure.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 14,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts Strongly to KSC. KSC gains significant momentum swing with a 72-point increase, now leading the momentum battle at minute 14.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Momentum swings to kingsport city. Kingsport City's momentum jumps by 72 points in 180 seconds despite holding just 39% possession.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 16,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Tavi Sarard. At minute 16, KSC's Tavi Sarard receives a yellow card, impacting team strategy and player aggression.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Early booking affects kingsport city. Just 16 minutes in, Kingsport's Sarard receives a yellow card, shaking up their defensive play and pressing strategy.",
+            "seconds": 7.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 20,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swing Towards RVA. RVA gains a significant momentum swing, shifting control and pressure in their favor at the 20th minute.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside turn up the pressure. In the last three minutes, Riverside have upped their game, keeping control with strong passing and pressing high to win the ball back.",
+            "seconds": 11.4,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 20,
+          "type": "goal",
+          "single": {
+            "text": "Pellello Scores Stunning Goal. Dario Pellello nets a powerful goal at 20 minutes, giving RVA a 1-0 lead with a 93.9 km/h shot.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello gives Riverside early lead. Just 20 minutes in, Pellello finds the net to put Riverside one up against Kingsport City.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 26,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Bram Velsby. RVA's Bram Velsby receives a crucial yellow card at the 26th minute, impacting team strategy and player aggression.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Velsby booked early on. At 26 minutes, Velsby's yellow card might slow Riverside's high-energy play, interrupting their usual quick pace of attack.",
+            "seconds": 6.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 29,
+          "type": "goal",
+          "single": {
+            "text": "Wexavi Scores Stunning Equalizer. Ari Wexavi nets a powerful goal at 29 minutes, leveling the score at 1-1 and boosting KSC's momentum.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Wexavi earns Kingsport a point. In the 29th minute, Wexavi fires a sharp shot to equalise, pulling Kingsport level at 1-1 with Riverside Athletic.",
+            "seconds": 7.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 36,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Toward RVA. RVA gains strong momentum shift in the 36th minute, significantly impacting match control and pressure.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside gain momentum late. Momentum swings by -79 for RVA in last 3 minutes, showing intense pressing with 16.0 PPDA.",
+            "seconds": 9.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 44,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance for Ari Wexavi. Ari Wexavi fired a powerful 98.6 km/h shot with 0.3 xG, but it was saved in the 44th minute.",
+            "seconds": 1.5,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Wexavi\u2019s power shot stopped. Just before halftime, Wexavi lets fly a fierce shot from distance, but Riverside\u2019s keeper makes a brilliant save to keep the game level.",
+            "seconds": 8.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 45,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts in Match. The last five minutes saw a spike in chaos, with 18 turnovers causing frantic play and uncertainty.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City battle early possession. Kingsport City face a tough first half with many turnovers disrupting their flow and stopping them from settling on the pitch.",
+            "seconds": 11.2,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 48,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings to RVA. RVA has seized control with a significant momentum shift, gaining a +75 swing in the last 3 minutes.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take control after break. Just after the restart, Riverside Athletic settle firmly on the ball, keeping hold of it more than half the time and making their passes count superbly.",
+            "seconds": 8.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 53,
+          "type": "momentum_swing",
+          "single": {
+            "text": "RVA Gains Significant Momentum Boost. RVA's momentum swung sharply, indicating a strong shift in control favoring them in the 53rd minute.",
+            "seconds": 1.4,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take control after half-hour. In the 53rd minute, Riverside Athletic seize the game with a big swing in momentum over three minutes.",
+            "seconds": 7.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 55,
+          "type": "pressing_spell",
+          "single": {
+            "text": "RVA Pressing Intensifies. RVA regains ball 3 times in 90 seconds in KSC's half, increasing pressure significantly.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside press causes Kingsport trouble. Riverside make three quick ball wins in 90 seconds, rattling Kingsport and forcing rushed passes on the pitch.",
+            "seconds": 8.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 65,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Sharply to RVA. RVA gains a significant momentum boost, shifting control strongly in their favor in minute 65.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside dominate late spell. In the last three minutes, Riverside Athletic\u2019s calm passing keeps them in strong control with 81% accuracy on the ball.",
+            "seconds": 10.9,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 65,
+          "type": "goal",
+          "single": {
+            "text": "Pellello Scores Stunning Goal. Dario Pellello's powerful 99.6 km/h strike puts RVA ahead 2-1, swinging momentum in their favor at minute 65.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello makes it 2-1 to Riverside. Riverside take the lead with a fierce strike from Pellello, leaving Kingsport chasing in this lively encounter.",
+            "seconds": 8.2,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 67,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC's Intense Pressing Spell. KSC regained possession three times in 90 seconds deep in RVA's half, increasing pressure and momentum at minute 67.",
+            "seconds": 1.5,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport's press lifts their game. Kingsport keep pressing hard and win the ball back three times in just 90 seconds, gaining control and pushing the game forward.",
+            "seconds": 9.9,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 69,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Spike in 69th Minute. The game turns chaotic with a high chaos index and 17 turnovers, impacting RVA's momentum and control.",
+            "seconds": 1.8,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside chaotic in last five minutes. Chaos index hits 0.691 with 17 turnovers and pass accuracy drops to 73% in last five minutes.",
+            "seconds": 8.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 77,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Idris Talley. Idris Talley receives a yellow card in the 77th minute, impacting RVA's defense and game strategy.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Talley sees yellow amid Riverside disorder. Riverside are in a bit of chaos, and Talley\u2019s booking might slow down their tough tackling.",
+            "seconds": 7.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 79,
+          "type": "big_chance",
+          "single": {
+            "text": "Huge Chance for Ari Wexavi Missed. Ari Wexavi had a strong 0.7 xG opportunity but shot off target at 116 km/h in the 79th minute.",
+            "seconds": 1.5,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport miss a golden chance. In the 79th minute, a fierce shot just misses the mark as Kingsport keep their passes crisp and accurate.",
+            "seconds": 6.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 82,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts Late in Match. Turnovers spike to 19 with chaos index at 0.69, signaling a wild final 5 minutes.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Chaos swirls in last five minutes. Kingsport City and Riverside Athletic trade 19 frantic turnovers as tension builds on the pitch in the last five minutes.",
+            "seconds": 10.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 90,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC High-Pressing Wins Ball Back. KSC regained possession 3 times in 90 seconds inside RVA's half, applying intense pressure and disrupting play.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport's fierce finish unsettles Riverside. In the last minute, Kingsport win the ball back three times, pushing Riverside to lose grip on the ball and stirring chaos on the pitch.",
+            "seconds": 8.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 90,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts in Final Minutes. High chaos level with 20 turnovers in last 5 minutes, game intensity surges in dying moments.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport rally turns up late drama. In the last five minutes Kingsport's fierce pressing forces 20 turnovers, sparking a frantic scramble on the pitch.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 11,
+          "minute": 90,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings in RVA's Favor. RVA gains a strong momentum edge in the last 3 minutes, shifting the game's intensity significantly.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take charge at the end. In the last three minutes, Riverside keep the ball and really press, showing great control to dominate the finish.",
+            "seconds": 11.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 21,
+      "storyline": "none",
+      "moments": [
+        {
+          "seed": 21,
+          "minute": 9,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Toward KSC. KSC has gained a significant momentum shift, increasing their chances of control and potential scoring opportunities.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Momentum with Kingsport City. The momentum is with Kingsport City now.",
+            "seconds": 8.8,
+            "drafts_rejected": 2,
+            "template": true,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 14,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings to RVA. RVA takes control with a major momentum shift, impacting the flow and pressure in the 14th minute.",
+            "seconds": 1.5,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside turn the tide. Riverside are pushing hard with just 38% possession, swinging momentum in their favour over the last three minutes.",
+            "seconds": 7.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 20,
+          "type": "pressing_spell",
+          "single": {
+            "text": "RVA Dominates with High Press. RVA wins ball back 3 times in 90 seconds deep in KSC's half, boosting pressure and control.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside's quick wins unsettle Kingsport. In just 90 seconds, Riverside swoop to win the ball back three times, breaking Kingsport's flow and causing them to lose their sharp passing.",
+            "seconds": 7.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 22,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card Issued to Tavi Sarard. Tavi Sarard of KSC receives a yellow card, impacting team discipline and game strategy in the 22nd minute.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Sarard's booking puts a brake on Kingsport. Sarard\u2019s yellow card might stop Kingsport from playing their usual tough, quick game in these last five minutes.",
+            "seconds": 9.0,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 31,
+          "type": "goal",
+          "single": {
+            "text": "Dario Pellello Scores Stunning Goal. Pellello's powerful 94.8 km/h shot gives RVA a crucial 1-0 lead at minute 31, shifting momentum decisively.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello fires Riverside ahead. Pellello cracks a stunning shot just past the half-hour, giving Riverside a 1-0 lead with calm and skill on the ball.",
+            "seconds": 8.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 32,
+          "type": "big_chance",
+          "single": {
+            "text": "Big Chance Missed by Ari Wexavi. Ari Wexavi's shot at 32 minutes was off target despite high speed, denying KSC a strong scoring opportunity.",
+            "seconds": 1.7,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City push hard late. Despite having only 29% possession, Kingsport City keep the pressure on with great passing and a big shot that just misses the target.",
+            "seconds": 9.7,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 43,
+          "type": "goal",
+          "single": {
+            "text": "Pellello Doubles RVA's Lead. Dario Pellello scores a powerful goal, putting RVA 2-0 up just before halftime, increasing their chances significantly.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello puts Riverside firmly in front. A powerful shot at 90 km/h doubles Riverside's lead, as they keep calm with 86% pass accuracy in the last five minutes.",
+            "seconds": 8.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 45,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for Bram Velsby. Bram Velsby receives a crucial yellow card for RVA at the 45th minute, impacting his team's defensive strategy.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Velsby shown yellow just before half-time. Riverside\u2019s Velsby picks up a booking in the 45th minute, which could calm Kingsport\u2019s early pressure after the break.",
+            "seconds": 7.9,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 46,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts Early in Second Half. Turnovers surge to 18 as the game shifts into a highly chaotic phase with a chaos index of 0.681.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Early second half packed with mistakes. Kingsport City hits a rough patch with lots of turnovers in the first five minutes after the break, making things pretty wild on the pitch.",
+            "seconds": 8.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 51,
+          "type": "goal",
+          "single": {
+            "text": "Pellello Nets Stunning Third Goal. Dario Pellello's 51st-minute strike solidifies RVA's dominant 3-0 lead with a powerful 106 km/h shot.",
+            "seconds": 1.0,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Pellello puts RVA three up. Riverside show sharp passing to keep the ball and score in the 51st minute, stretching their lead to three goals over Kingsport City.",
+            "seconds": 7.5,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 58,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts to RVA at 58'. RVA gains significant momentum swing, changing control dynamics in their favor during this critical phase.",
+            "seconds": 1.4,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside take charge of the game. Riverside Athletic are on fire with their passing, keeping full control and never losing the ball under pressure in the last three minutes.",
+            "seconds": 8.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 60,
+          "type": "chaos_spike",
+          "single": {
+            "text": "Chaos Erupts at Minute 60. A high chaos index of 0.699 with 20 turnovers in 5 minutes signals increasing game unpredictability.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside press Kingsport hard. Riverside\u2019s strong pressure causes Kingsport to lose the ball 20 times, making play tough for Kingsport with just a quarter of passes finding their target under pressure.",
+            "seconds": 9.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 61,
+          "type": "big_chance",
+          "single": {
+            "text": "Noa Trenund's Big Chance Missed. At 61 minutes, Trenund's powerful 85.5 km/h shot was a big chance but went off target for RVA.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Riverside keep up the pressure. At 61 minutes, Riverside come so close with a quick shot that just misses, showing they're still pushing hard on the attack.",
+            "seconds": 7.1,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 70,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Shifts in Favor of KSC. KSC gains a significant momentum swing at the 70th minute, increasing their chances to control the game.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City take control. After the 70th minute, Kingsport City step up their game, passing faster and with more confidence on the ball.",
+            "seconds": 8.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 80,
+          "type": "momentum_swing",
+          "single": {
+            "text": "Momentum Swings Toward KSC. In the 80th minute, KSC gains a significant momentum boost, shifting control and pressure in their favor.",
+            "seconds": 1.2,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport take control near end. In the last three minutes, Kingsport rise up with a surge in momentum, keeping the ball and pushing forward with strength.",
+            "seconds": 9.3,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 81,
+          "type": "card",
+          "single": {
+            "text": "Yellow Card for KSC's Sol Kasume. Sol Kasume receives a yellow card in the 81st minute, impacting KSC's defense and discipline late in the match.",
+            "seconds": 1.1,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kasume gets his warning. In the 81st minute, Sol Kasume picks up a yellow card as Kingsport City keep the pressure on under rising tension.",
+            "seconds": 7.4,
+            "drafts_rejected": 1,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 84,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC Intensifies Pressing in Final Minutes. KSC wins ball back three times in 90 seconds in RVA's half, applying fierce pressure late in the match.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport disrupt Riverside late. In the last minute and a half, Kingsport steals the ball three times, stopping Riverside from settling their attack.",
+            "seconds": 7.6,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        },
+        {
+          "seed": 21,
+          "minute": 90,
+          "type": "pressing_spell",
+          "single": {
+            "text": "KSC Intensive Pressing Spree. KSC wins ball back three times in 90 seconds inside RVA's half, intensifying pressure late in match.",
+            "seconds": 1.3,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          },
+          "pipeline": {
+            "text": "Kingsport City ramp up the pressure. In the last minute and a half, Kingsport City win the ball back three times deep in Riverside's half to throw them off their game.",
+            "seconds": 8.8,
+            "drafts_rejected": 0,
+            "template": false,
+            "wrong_number": false,
+            "wrong_name": false,
+            "wrong_context": false
+          }
+        }
+      ]
+    }
+  ]
+}

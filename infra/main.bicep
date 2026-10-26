@@ -19,6 +19,9 @@ param openAiDeployment string = 'gpt-4.1-mini'
 @description('API key of the Foundry resource. Stored as a Container Apps secret, never in the image.')
 param openAiKey string
 
+@description('Region for Azure AI Speech (not offered in every region; East Asia is on the student allow-list).')
+param speechLocation string = 'eastasia'
+
 @description('Container image. azd sets this on deploy; the placeholder lets the first provision succeed.')
 param image string = 'mcr.microsoft.com/k8se/quickstart:latest'
 
@@ -44,6 +47,16 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
     Application_Type: 'web'
     WorkspaceResourceId: logs.id
   }
+}
+
+// Neural voices for spoken commentary in English, Hindi and Spanish. F0 is the free tier.
+resource speech 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: '${name}-speech'
+  location: speechLocation
+  tags: tags
+  kind: 'SpeechServices'
+  sku: { name: 'F0' }
+  properties: {}
 }
 
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
@@ -98,6 +111,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'registry-password', value: registry.listCredentials().passwords[0].value }
         { name: 'openai-key', value: openAiKey }
         { name: 'appinsights', value: insights.properties.ConnectionString }
+        { name: 'speech-key', value: speech.listKeys().key1 }
       ]
     }
     template: {
@@ -113,6 +127,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_OPENAI_DEPLOYMENT', value: openAiDeployment }
             { name: 'AZURE_OPENAI_API_KEY', secretRef: 'openai-key' }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'appinsights' }
+            { name: 'AZURE_SPEECH_KEY', secretRef: 'speech-key' }
+            { name: 'AZURE_SPEECH_REGION', value: speechLocation }
           ]
           probes: [
             {

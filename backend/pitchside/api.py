@@ -17,11 +17,12 @@ from pathlib import Path
 
 from agent_framework import MCPStreamableHTTPTool
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
-from pitchside import telemetry
+from pitchside import speech, telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
@@ -76,8 +77,23 @@ def health() -> dict:
         "provider": cfg.provider,
         "model": cfg.model,
         "tracing": telemetry._done,
+        "speech": speech.enabled(),
         "storylines": sorted(STORYLINES),
     }
+
+
+@app.get("/api/speak")
+async def speak(text: str, lang: str = "en") -> Response:
+    """A caption read aloud by an Azure AI Speech neural voice (English, Hindi or Spanish)."""
+    if not speech.enabled():
+        return Response(status_code=503)
+    try:
+        audio = await run_in_threadpool(speech.synthesize, text, lang)
+    except Exception:  # noqa: BLE001 - the browser falls back to its own voice
+        return Response(status_code=502)
+    return Response(
+        audio, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"}
+    )
 
 
 @app.get("/api/meta")
