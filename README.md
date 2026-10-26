@@ -19,11 +19,18 @@ Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Micr
 
 One pipeline, five stages, as the challenge asks:
 
-1. **Ingest.** A match simulator streams synthetic events (passes, carries, dribbles, shots, tackles, interceptions, pressure, fouls, cards, substitutions, sprints, possession changes) as they happen.
-2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo and a control vs chaos index. It flags candidate moments with a significance score and the evidence behind each one.
-3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools.
+1. **Ingest.** A match simulator streams synthetic events (passes, carries, dribbles, shots, tackles, interceptions, pressure, fouls, cards, substitutions, sprints, possession changes) as they happen. Three other fixtures of the same matchday play alongside it.
+2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo, a control vs chaos index and a live win probability. It flags candidate moments with a significance score and the evidence behind each one.
+3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools, including the live league table.
 4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer.
 5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club and a chosen player, localized into Hindi and Spanish, and read aloud by Azure AI Speech neural voices.
+
+What a viewer gets on top of that:
+
+- **The Coastal League.** Eight fictional clubs. The featured match is one of four on matchday 10; a live table moves with every goal, and goals elsewhere that matter to the two clubs on the pitch come through as "around the league" moments.
+- **Half-time and full-time recaps**, written by the same agents from stats-engine facts, for every viewer and language.
+- **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown.
+- **Broadcast touches:** goal banner and animated goal replays, scorers on the scoreboard, a shot map in analyst mode, a live card for the player you follow, a win-probability bar and a scores ticker.
 
 ## How it works
 
@@ -54,10 +61,11 @@ A rejected caption goes back to the Narrator with the reasons. If it fails twice
 | Agent | Job | Falls back to |
 | --- | --- | --- |
 | Director | Picks which moments air and when, keeps variety, never floods the screen | Rule: highest significance, varied type |
-| Analyst | Explains why the moment matters, citing numbers fetched over MCP | The moment's own summary |
-| Narrator | Writes a headline and a live line in commentator style | Template line |
+| Analyst | Explains why the moment matters, citing numbers fetched over MCP (stats and league table) | The moment's own summary |
+| Narrator | Writes a headline and a live line in commentator style, and the half-time and full-time recaps | Template line |
 | Verifier | Checks numbers, names, timing and style; sends drafts back | (plain code, cannot fail) |
-| Persona | Rewrites for casual, analyst, club and player viewers | The verified base line |
+| Persona | Rewrites for casual, analyst, club and player viewers; one retry with the Verifier's reasons | The verified base line |
+| Pundit | Answers viewers' questions from live data (Ask Pitchside) | An honest "I can't confirm that" |
 | Linguist | Localizes into Hindi and Spanish, keeping numbers intact | English |
 
 Shared state is one `MatchState` per match. Each live match gets its own key, and the Analyst's MCP client sends it as a header, so tools always answer for the right match. Live matches stream continuously while up to three moments are handled in parallel.
@@ -95,7 +103,7 @@ What I take from this:
 | Player identification with speed and distance triggers | `sprint` and `physical` events, player tags |
 | Pass quality: distance, accuracy, difficulty | `stats/metrics.py` `pass_difficulty` |
 | Ball speed and shot speed | simulator physics, `shot_speed_kmh`, `ball_speed_kmh` |
-| Narratives, milestones, recaps | Narrator agent, milestone moments |
+| Narratives, milestones, recaps | Narrator agent, milestone moments, half-time and full-time recaps |
 | Data innovation | the simulator, five sample matches in `data/samples`, `schemas/event.schema.json` |
 | Multi-language storytelling | Linguist agent (Hindi, Spanish) |
 | Auto-eventing from video | not built; see roadmap |
@@ -109,7 +117,7 @@ Everything is synthetic, with made-up clubs and players. The simulator is a poss
 ```bash
 cd backend
 uv sync
-uv run pytest                                   # 32 tests
+uv run pytest                                   # 34 tests
 PITCHSIDE_PROVIDER=templates uv run python -m pitchside.run   # whole match, no model needed
 cp .env.example .env                            # add your Foundry endpoint, deployment and key
 uv run uvicorn pitchside.api:app --port 8000
