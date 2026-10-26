@@ -191,8 +191,21 @@ class AnalystExec(Executor):
     @handler
     async def analyse(self, job: Job, ctx: WorkflowContext[Job]) -> None:
         t0 = time.perf_counter()
+        # The numbers analysts reach for most, handed over up front: most moments then need no tool
+        # round trips at all, which is where the Analyst's time went. Tools stay available for more.
+        sheet = job.sheet
+        primed = {
+            "snapshot": sheet.get("snapshot"),
+            "last_5_minutes": {t: sheet["metrics"][t][300] for t in sheet.get("metrics", {})},
+            "players": sheet.get("players"),
+            "league": sheet.get("league"),
+        }
         reply = await ask(
-            self.agent, json.dumps({"moment": describe(job.moment, job.names), "clubs": job.clubs})
+            self.agent,
+            json.dumps(
+                {"moment": describe(job.moment, job.names), "clubs": job.clubs, "context": primed},
+                default=str,
+            ),
         )
         if reply and reply.get("claim"):
             kept, problems = check_citations(
