@@ -9,7 +9,7 @@ import type {
   Snapshot,
   Trace,
 } from "./types";
-import { pitchPos, type BallPoint } from "./useMatch";
+import { pitchPos, type BallPoint, type Replay } from "./useMatch";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
   meta && code
@@ -239,6 +239,7 @@ export function Pitch({
   onPitch,
   focus,
   shots = [],
+  replay,
   children,
 }: {
   meta: Meta | null;
@@ -248,6 +249,7 @@ export function Pitch({
   onPitch: string[];
   focus?: string;
   shots?: Shot[];
+  replay?: Replay | null;
   children?: React.ReactNode;
 }) {
   const ball = trail.at(-1);
@@ -379,7 +381,13 @@ export function Pitch({
           fill="url(#vignette)"
           pointerEvents="none"
         />
+        {replay && <ReplayLayer replay={replay} meta={meta} />}
       </svg>
+      {replay && meta && (
+        <div className="rise pointer-events-none absolute left-1/2 top-[4%] -translate-x-1/2 rounded-full bg-[rgba(7,11,20,.86)] px-4 py-1.5 text-[12px] font-semibold uppercase tracking-[0.16em] ring-1 ring-white/10">
+          <span className="text-bad">● Replay</span> · {playerName(meta, replay.player)} {replay.minute}'
+        </div>
+      )}
       {children}
     </div>
   );
@@ -1325,5 +1333,30 @@ export function AskPanel({
         </button>
       </form>
     </div>
+  );
+}
+
+/* ---------- goal replay ---------- */
+
+function ReplayLayer({ replay, meta }: { replay: Replay; meta: Meta | null }) {
+  const pts = replay.path.map((p) => `${p.x.toFixed(1)},${(68 - p.y).toFixed(1)}`);
+  const d = `M${pts.join(" L")}`;
+  const color = clubColor(meta, replay.team);
+  const dur = Math.max(2.5, replay.path.length * 0.55);
+  return (
+    <g key={replay.id}>
+      <rect x="-3" y="-3" width="111" height="74" fill="black" opacity="0.35" />
+      <path d={d} fill="none" stroke={color} strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset="1">
+        <animate attributeName="stroke-dashoffset" from="1" to="0" dur={`${dur}s`} fill="freeze" />
+      </path>
+      {replay.path.slice(0, -1).map((p, i) => (
+        <circle key={i} cx={p.x} cy={68 - p.y} r="1.1" fill={color} stroke="white" strokeWidth="0.25" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" begin={`${(i / replay.path.length) * dur}s`} dur="0.2s" fill="freeze" />
+        </circle>
+      ))}
+      <circle r="1.1" fill="white">
+        <animateMotion path={d} dur={`${dur}s`} fill="freeze" />
+      </circle>
+    </g>
   );
 }

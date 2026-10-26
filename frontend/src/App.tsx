@@ -108,6 +108,20 @@ export default function App() {
   const myCards = useMemo(() => view.cards.filter((c) => c.profile_key === key), [view.cards, key]);
   const latest = myCards.filter((c) => !isRecap(c)).at(-1);
   const latestRecap = myCards.filter(isRecap).at(-1);
+  // Each goal replays its build-up once the banner has gone; feed buttons replay any goal again.
+  const [replayId, setReplayId] = useState<number | null>(null);
+  const lastReplay = view.replays.at(-1);
+  useEffect(() => {
+    if (!lastReplay) return;
+    const show = window.setTimeout(() => setReplayId(lastReplay.id), 3300);
+    return () => window.clearTimeout(show);
+  }, [lastReplay?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const replay = view.replays.find((r) => r.id === replayId) ?? null;
+  useEffect(() => {
+    if (!replay) return;
+    const hide = window.setTimeout(() => setReplayId(null), Math.max(2500, replay.path.length * 550) + 2500);
+    return () => window.clearTimeout(hide);
+  }, [replay?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const started = view.status !== "idle";
 
   return (
@@ -168,6 +182,7 @@ export default function App() {
                 onPitch={view.onPitch}
                 focus={mode === "player" ? settings.player : undefined}
                 shots={mode === "analyst" ? view.shots : []}
+                replay={replay}
               >
                 <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
                 {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
@@ -210,7 +225,23 @@ export default function App() {
             )}
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {tab === "commentary" ? (
-                <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+                <>
+                  {view.replays.length > 0 && (
+                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Goal replays</span>
+                      {view.replays.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => setReplayId(r.id)}
+                          className="rounded-full border border-line bg-panel-2/60 px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-white"
+                        >
+                          ▶ {r.team} {r.minute}'
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+                </>
               ) : tab === "ask" ? (
                 <AskPanel
                   matchKey={view.matchKey}

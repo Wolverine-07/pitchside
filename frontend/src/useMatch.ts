@@ -11,6 +11,7 @@ export type Settings = {
 };
 
 export type BallPoint = { x: number; y: number; team?: string; type: string };
+export type Replay = { id: number; minute: number; team: string; player: string; path: BallPoint[] };
 
 export type MatchView = {
   status: "idle" | "connecting" | "live" | "done" | "error";
@@ -33,6 +34,8 @@ export type MatchView = {
   lastGoal: (Goal & { at: number }) | null;
   player: PlayerStats | null;
   matchKey: string | null;
+  recent: BallPoint[];
+  replays: Replay[];
 };
 
 const EMPTY: MatchView = {
@@ -56,6 +59,8 @@ const EMPTY: MatchView = {
   lastGoal: null,
   player: null,
   matchKey: null,
+  recent: [],
+  replays: [],
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -121,7 +126,11 @@ function reduce(v: MatchView, item: any): MatchView {
       const next = { ...v, clock: { t_ms: e.t_ms, minute: e.minute, added: e.added, period: e.period } };
       if (ON_BALL.has(e.type) && e.x !== undefined) {
         const end = e.end_x !== undefined && e.outcome !== "incomplete" ? { x: e.end_x, y: e.end_y! } : { x: e.x, y: e.y! };
-        next.trail = [...v.trail.slice(-7), { ...toPitch(v.meta, e.team, end.x, end.y), team: e.team, type: e.type }];
+        const start = toPitch(v.meta, e.team, e.x, e.y!);
+        const point = { ...toPitch(v.meta, e.team, end.x, end.y), team: e.team, type: e.type };
+        next.trail = [...v.trail.slice(-7), point];
+        // The build-up for replays: where each touch started, newest last.
+        next.recent = [...v.recent.slice(-14), { ...start, team: e.team, type: e.type }];
       }
       if (FEED.has(e.type)) next.feed = [e, ...v.feed].slice(0, 30);
       if (e.type === "shot" && e.x !== undefined) {
@@ -132,6 +141,16 @@ function reduce(v: MatchView, item: any): MatchView {
         const g = { team: e.team!, player: e.player!, minute: e.minute, added: e.added };
         next.goals = [...v.goals, g];
         next.lastGoal = { ...g, at: Date.now() };
+        // Keep the scoring side's last run of touches, ending in the goal mouth.
+        const run: BallPoint[] = [];
+        for (const p of [...v.recent].reverse()) {
+          if (p.team !== e.team) break;
+          run.unshift(p);
+          if (run.length === 8) break;
+        }
+        const homeScored = v.meta && e.team === v.meta.home.code;
+        run.push({ x: homeScored ? 105 : 0, y: 34, team: e.team, type: "goal" });
+        next.replays = [...v.replays, { id: Date.now(), minute: e.minute, team: e.team!, player: e.player!, path: run }];
       }
       if (e.type === "substitution" && e.player)
         next.onPitch = v.onPitch.map((id) => (id === e.player ? (e as any).player_on : id));
