@@ -9,6 +9,7 @@ dependencies = [
     "agent-framework-openai>=1.17.0",
     "agent-framework-orchestrations>=1.4.0",
     "azure-identity>=1.26.0",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b58",
     "fastapi>=0.115",
     "httpx>=0.28.1",
     "mcp>=2.2",

@@ -54,11 +54,16 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   properties: { adminUserEnabled: true }
 }
 
+// A standard environment with the Consumption profile. (Without workloadProfiles, new subscriptions may
+// get an "express" environment, which cannot pull from a private registry.)
 resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: '${name}-env-${suffix}'
+  name: '${name}-cae-${suffix}'
   location: location
   tags: tags
   properties: {
+    workloadProfiles: [
+      { name: 'Consumption', workloadProfileType: 'Consumption' }
+    ]
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
@@ -75,6 +80,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
   tags: union(tags, { 'azd-service-name': 'web' })
   properties: {
     managedEnvironmentId: env.id
+    workloadProfileName: 'Consumption'
     configuration: {
       ingress: {
         external: true
