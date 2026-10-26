@@ -80,7 +80,7 @@ export default function App() {
     seed: 16,
     storyline: "comeback",
     fixture: "KSC-RVA",
-    speed: 5,
+    speed: 3,
     club: "RVA",
     player: "KSC-09",
     langs: ["en", "hi", "es"],
@@ -460,7 +460,7 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
               <select className={selectClass} value={settings.speed} onChange={(e) => setSettings({ ...settings, speed: Number(e.target.value) })}>
                 {[1, 3, 5, 10].map((s) => (
                   <option key={s} value={s}>
-                    {s === 1 ? "Real time" : `${s}x${s === 5 ? " (recommended)" : ""}`}
+                    {s === 1 ? "Real time" : `${s}x${s === 3 ? " (recommended)" : ""}`}
                   </option>
                 ))}
               </select>
