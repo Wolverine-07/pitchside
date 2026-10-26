@@ -1,0 +1,12 @@
+# Azure Developer CLI: `azd up` provisions infra/ and deploys the app container.
+name: pitchside
+metadata:
+  template: pitchside@0.1.0
+services:
+  web:
+    project: .
+    language: docker
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: .
