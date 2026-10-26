@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #0b1220;
-  --color-panel: #121b2e;
-  --color-line: #24304a;
-  --color-muted: #8b98b3;
-  --color-accent: #4da3ff;
-  --color-good: #3ccf8e;
-  --color-bad: #ff6b6b;
-  --color-pitch: #13371f;
-  --color-pitch-line: #2f6b44;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #070b14;
+  --color-panel: #0d1424;
+  --color-panel-2: #111a2e;
+  --color-line: #1d2942;
+  --color-muted: #7d8aa6;
+  --color-soft: #b7c2d8;
+  --color-accent: #4f9cff;
+  --color-good: #34d399;
+  --color-warn: #fbbf24;
+  --color-bad: #f87171;
+  --color-grass: #10331f;
+  --color-grass-2: #133a24;
+  --font-sans: "Inter", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 html,
@@ -20,16 +24,23 @@ body,
 }
 
 body {
-  background: var(--color-ink);
-  color: #e8eefc;
+  background: radial-gradient(1200px 600px at 20% -10%, #0f1a33 0%, var(--color-ink) 55%);
+  color: #e6ecf8;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;
 }
 
-@keyframes card-in {
+/* Thin scrollbars that match the dark panels. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #24324f transparent;
+}
+
+@keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -37,6 +48,30 @@ body {
   }
 }
 
-.card-in {
-  animation: card-in 280ms ease-out;
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.rise {
+  animation: rise 260ms ease-out;
+}
+
+.live-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+/* The pitch (105 x 68 plus a 3 m margin) keeps its shape and fills whichever dimension runs out first. */
+.pitch-stage {
+  container-type: size;
+}
+
+.pitch-box {
+  width: min(100cqw, calc(100cqh * 111 / 74));
+  aspect-ratio: 111 / 74;
 }

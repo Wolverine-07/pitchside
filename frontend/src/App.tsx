@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { AgentTrace, ChaosGauge, InsightCard, MomentumStrip, Pitch, ScoreBug, StatRow } from "./components";
+import {
+  AgentSummary,
+  AgentTrace,
+  CommentaryFeed,
+  ControlGauge,
+  LowerThird,
+  MatchStats,
+  Momentum,
+  Pitch,
+  Scoreboard,
+} from "./components";
 import type { Lang, Meta, Mode } from "./types";
 import { type Settings, useMatch } from "./useMatch";
 
@@ -10,10 +20,45 @@ const MODES: { id: Mode; label: string }[] = [
   { id: "player", label: "My player" },
 ];
 const LANGS: { id: Lang; label: string }[] = [
-  { id: "en", label: "English" },
-  { id: "hi", label: "हिन्दी" },
-  { id: "es", label: "Español" },
+  { id: "en", label: "EN" },
+  { id: "hi", label: "हिं" },
+  { id: "es", label: "ES" },
 ];
+
+function Segmented<T extends string>({ items, value, onChange, label }: { items: { id: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden text-[11px] font-medium uppercase tracking-[0.14em] text-muted xl:inline">{label}</span>
+      <div className="flex rounded-lg border border-line bg-panel p-0.5">
+        {items.map((x) => (
+          <button
+            key={x.id}
+            onClick={() => onChange(x.id)}
+            className={`rounded-md px-3 py-1 text-[13px] font-medium transition-colors ${value === x.id ? "bg-accent text-ink" : "text-soft hover:text-white"}`}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Logo() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <svg viewBox="0 0 32 32" className="h-7 w-7">
+        <rect width="32" height="32" rx="8" fill="#10331f" />
+        <rect x="5" y="8" width="22" height="16" rx="1" fill="none" stroke="#7fd3a0" strokeWidth="1.5" />
+        <line x1="16" y1="8" x2="16" y2="24" stroke="#7fd3a0" strokeWidth="1.5" />
+        <circle cx="16" cy="16" r="3" fill="#4f9cff" />
+      </svg>
+      <span className="text-[17px] font-bold tracking-tight">
+        Pitch<span className="text-accent">side</span>
+      </span>
+    </div>
+  );
+}
 
 export default function App() {
   const { view, start } = useMatch();
@@ -21,7 +66,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>({
     seed: 16,
     storyline: "comeback",
-    speed: 10,
+    speed: 5,
     club: "RVA",
     player: "KSC-09",
     langs: ["en", "hi", "es"],
@@ -29,6 +74,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("casual");
   const [lang, setLang] = useState<Lang>("en");
   const [voice, setVoice] = useState(false);
+  const [tab, setTab] = useState<"commentary" | "agents">("commentary");
 
   useEffect(() => {
     fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}`)
@@ -37,14 +83,14 @@ export default function App() {
       .catch(() => setMeta(null));
   }, [settings.seed, settings.storyline]);
 
-  // ?kickoff starts straight away (handy for demos); ?mode= and ?lang= preselect the view.
+  // ?kickoff starts straight away (handy for demos); ?mode=, ?lang= and ?tab= preselect the view.
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     if (q.get("mode")) setMode(q.get("mode") as Mode);
     if (q.get("lang")) setLang(q.get("lang") as Lang);
+    if (q.get("tab") === "agents") setTab("agents");
     if (q.has("kickoff") && meta && view.status === "idle") {
-      const speed = Number(q.get("speed") ?? settings.speed);
-      start({ ...settings, speed });
+      start({ ...settings, speed: Number(q.get("speed") ?? settings.speed) });
     }
   }, [meta]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -53,95 +99,105 @@ export default function App() {
   const key = `${profile}:${lang}`;
   const myCards = useMemo(() => view.cards.filter((c) => c.profile_key === key), [view.cards, key]);
   const latest = myCards.at(-1);
-  const snap = view.snapshot;
   const started = view.status !== "idle";
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2.5">
-        <div className="mr-2 text-lg font-bold tracking-tight">
-          Pitch<span className="text-accent">side</span>
-        </div>
-        <div className="flex overflow-hidden rounded-md border border-line">
-          {MODES.map((x) => (
+      <header className="flex h-14 shrink-0 items-center gap-5 border-b border-line bg-ink/70 px-5 backdrop-blur">
+        <Logo />
+        {m && (
+          <div className="hidden min-w-0 border-l border-line pl-5 lg:block">
+            <div className="truncate text-[13px] font-semibold">
+              {m.home.name} v {m.away.name}
+            </div>
+            <div className="truncate text-[11px] text-muted">{m.venue} · synthetic match</div>
+          </div>
+        )}
+        {started && (
+          <div className="ml-auto flex items-center gap-4">
+            <Segmented label="View" items={MODES} value={mode} onChange={setMode} />
+            <Segmented label="Language" items={LANGS} value={lang} onChange={setLang} />
             <button
-              key={x.id}
-              onClick={() => setMode(x.id)}
-              className={`px-3 py-1.5 text-sm ${mode === x.id ? "bg-accent/20 font-semibold text-white" : "text-muted hover:text-white"}`}
+              onClick={() => setVoice((v) => !v)}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${voice ? "border-accent bg-accent/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
+              title="Read captions aloud with Azure AI Speech"
             >
-              {x.label}
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <path d="M4 8h3l4-3v10l-4-3H4z" />
+                {voice && <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5.5a6.5 6.5 0 0 1 0 9" />}
+              </svg>
+              Voice
             </button>
-          ))}
-        </div>
-        <div className="flex overflow-hidden rounded-md border border-line">
-          {LANGS.map((x) => (
-            <button
-              key={x.id}
-              onClick={() => setLang(x.id)}
-              className={`px-3 py-1.5 text-sm ${lang === x.id ? "bg-accent/20 font-semibold text-white" : "text-muted hover:text-white"}`}
-            >
-              {x.label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setVoice((v) => !v)}
-          className={`rounded-md border border-line px-3 py-1.5 text-sm ${voice ? "bg-accent/20 text-white" : "text-muted"}`}
-        >
-          Voice {voice ? "on" : "off"}
-        </button>
-        <div className="ml-auto flex items-center gap-2 text-xs text-muted">
-          {view.provider && <span className="rounded bg-line px-2 py-1">model: {view.provider}</span>}
-          <span className={`rounded px-2 py-1 ${view.status === "live" ? "bg-bad/20 text-bad" : "bg-line"}`}>
-            {view.status === "live" ? "● LIVE" : view.status}
-          </span>
-        </div>
+            <div className="flex items-center gap-2 border-l border-line pl-4 text-[12px]">
+              {view.status === "live" ? (
+                <span className="flex items-center gap-1.5 font-semibold text-bad">
+                  <i className="live-dot h-2 w-2 rounded-full bg-bad" />
+                  LIVE
+                </span>
+              ) : (
+                <span className="capitalize text-muted">{view.status}</span>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {!started ? (
         <Setup meta={meta} settings={settings} setSettings={setSettings} onStart={() => start(settings)} />
       ) : (
-        <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[1fr_380px]">
-          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-            <Pitch
-              meta={m}
-              trail={view.trail}
-              tags={view.tags}
-              clockMs={view.clock.t_ms}
-              onPitch={view.onPitch}
-              focus={mode === "player" ? settings.player : undefined}
-            >
-              <ScoreBug meta={m} snapshot={snap} minute={view.clock.minute} added={view.clock.added} />
-              <InsightCard card={latest} voice={voice} lang={lang} meta={m} />
-            </Pitch>
-            <MomentumStrip data={view.momentum} meta={m} />
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-3 rounded-lg border border-line bg-panel p-3">
-                {snap && m && (
-                  <>
-                    <StatRow label="Possession %" home={snap.possession_pct[m.home.code]} away={snap.possession_pct[m.away.code]} meta={m} />
-                    <StatRow label="xG" home={snap.xg[m.home.code]} away={snap.xg[m.away.code]} meta={m} fmt={(v) => v.toFixed(2)} />
-                    <ChaosGauge value={snap.chaos_5min} />
-                  </>
-                )}
-                {!snap && <div className="text-sm text-muted">Kick-off soon…</div>}
-              </div>
-              <div className="rounded-lg border border-line bg-panel p-3">
-                <div className="mb-2 text-xs uppercase tracking-wider text-muted">The story so far · {MODES.find((x) => x.id === mode)?.label}</div>
-                <ol className="max-h-56 space-y-2 overflow-y-auto pr-1 text-sm">
-                  {[...myCards].reverse().map((c) => (
-                    <li key={c.overlay_id} className="card-in">
-                      <span className="mr-2 tabular-nums text-muted">{Math.floor(c.anchor_t_ms / 60000) + 1}'</span>
-                      <span className="font-semibold">{c.content.headline}.</span> <span className="text-slate-300">{c.content.body}</span>
-                    </li>
-                  ))}
-                  {myCards.length === 0 && <li className="text-muted">Nothing yet.</li>}
-                </ol>
-              </div>
+        <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_400px]">
+          <section className="flex min-h-0 flex-col gap-3">
+            <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} />
+            <div className="pitch-stage grid min-h-0 flex-1 place-items-center">
+              <Pitch
+                meta={m}
+                trail={view.trail}
+                tags={view.tags}
+                clockMs={view.clock.t_ms}
+                onPitch={view.onPitch}
+                focus={mode === "player" ? settings.player : undefined}
+              >
+                <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
+              </Pitch>
+            </div>
+            <div className="grid h-[132px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
+              <Momentum data={view.momentum} meta={m} />
+              <MatchStats snapshot={view.snapshot} meta={m} />
+              <ControlGauge value={view.snapshot?.chaos_5min} />
             </div>
           </section>
-          <aside className="min-h-0">
-            <AgentTrace traces={view.traces} />
+
+          <aside className="flex min-h-0 flex-col rounded-xl border border-line bg-panel">
+            <div className="flex shrink-0 gap-1 border-b border-line p-1.5">
+              {(
+                [
+                  ["commentary", "Commentary", myCards.length],
+                  ["agents", "Agents", view.traces.length],
+                ] as const
+              ).map(([id, label, n]) => (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-[13px] font-semibold transition-colors ${tab === id ? "bg-panel-2 text-white" : "text-muted hover:text-soft"}`}
+                >
+                  {label}
+                  <span className="rounded-full bg-white/5 px-1.5 font-mono text-[11px] text-soft">{n}</span>
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {tab === "commentary" ? (
+                <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+              ) : (
+                <>
+                  <AgentSummary traces={view.traces} />
+                  <AgentTrace traces={view.traces} />
+                </>
+              )}
+            </div>
+            <div className="shrink-0 border-t border-line px-4 py-2.5 text-[11px] text-muted">
+              {view.provider === "templates" ? "Template mode: no model connected" : "Six agents on Microsoft Foundry · every number verified"}
+            </div>
           </aside>
         </main>
       )}
@@ -149,79 +205,98 @@ export default function App() {
   );
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+const selectClass = "w-full rounded-lg border border-line bg-ink px-3 py-2.5 text-sm outline-none transition-colors focus:border-accent";
+
 function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; settings: Settings; setSettings: (s: Settings) => void; onStart: () => void }) {
   const players = meta ? [...meta.home.players, ...meta.away.players].filter((p) => p.starter && p.role !== "GK") : [];
   const clubs = meta ? [meta.home, meta.away] : [];
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-xl rounded-2xl border border-line bg-panel p-6 shadow-xl">
-        <h1 className="text-2xl font-bold">Make this match yours</h1>
-        <p className="mt-1 text-sm text-muted">
-          {meta ? `${meta.home.name} v ${meta.away.name} · ${meta.venue}` : "Loading match…"} · synthetic match, made-up clubs and players
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm">
-            <span className="text-muted">Your club</span>
-            <select
-              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2"
-              value={settings.club}
-              onChange={(e) => setSettings({ ...settings, club: e.target.value })}
-            >
-              {clubs.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="text-muted">Player to follow</span>
-            <select
-              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2"
-              value={settings.player}
-              onChange={(e) => setSettings({ ...settings, player: e.target.value })}
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.id.slice(0, 3)} #{p.number})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="text-muted">Match speed</span>
-            <select
-              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2"
-              value={settings.speed}
-              onChange={(e) => setSettings({ ...settings, speed: Number(e.target.value) })}
-            >
-              {[1, 5, 10, 20].map((s) => (
-                <option key={s} value={s}>
-                  {s === 1 ? "Real time" : `${s}x`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="text-muted">Match</span>
-            <select
-              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2"
-              value={`${settings.seed}:${settings.storyline}`}
-              onChange={(e) => {
-                const [seed, storyline] = e.target.value.split(":");
-                setSettings({ ...settings, seed: Number(seed), storyline });
-              }}
-            >
-              <option value="16:comeback">Demo: the comeback</option>
-              <option value="3:none">Random match A</option>
-              <option value="7:none">Random match B</option>
-              <option value="11:none">Random match C</option>
-            </select>
-          </label>
+      <div className="w-full max-w-2xl">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold tracking-tight">The story of the game, made for you</h1>
+          <p className="mt-2 text-soft">
+            AI agents watch the match, explain why each moment matters, check every number, and tell it your way.
+          </p>
         </div>
-        <button onClick={onStart} disabled={!meta} className="mt-6 w-full rounded-lg bg-accent py-2.5 font-semibold text-ink disabled:opacity-50">
-          Kick off
-        </button>
+        <div className="rounded-2xl border border-line bg-panel p-6 shadow-2xl">
+          {meta && (
+            <div className="mb-6 flex items-center justify-center gap-4 border-b border-line pb-5">
+              <span className="grid h-11 w-11 place-items-center rounded-full text-xs font-extrabold" style={{ background: meta.home.colors[0] }}>
+                {meta.home.code}
+              </span>
+              <div className="text-center">
+                <div className="font-semibold">
+                  {meta.home.name} <span className="text-muted">v</span> {meta.away.name}
+                </div>
+                <div className="text-xs text-muted">{meta.venue} · synthetic match, made-up clubs and players</div>
+              </div>
+              <span className="grid h-11 w-11 place-items-center rounded-full text-xs font-extrabold" style={{ background: meta.away.colors[0] }}>
+                {meta.away.code}
+              </span>
+            </div>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Your club">
+              <select className={selectClass} value={settings.club} onChange={(e) => setSettings({ ...settings, club: e.target.value })}>
+                {clubs.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Player to follow">
+              <select className={selectClass} value={settings.player} onChange={(e) => setSettings({ ...settings, player: e.target.value })}>
+                {players.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.id.slice(0, 3)} #{p.number}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Match">
+              <select
+                className={selectClass}
+                value={`${settings.seed}:${settings.storyline}`}
+                onChange={(e) => {
+                  const [seed, storyline] = e.target.value.split(":");
+                  setSettings({ ...settings, seed: Number(seed), storyline });
+                }}
+              >
+                <option value="16:comeback">The comeback (demo)</option>
+                <option value="3:none">Match A</option>
+                <option value="7:none">Match B</option>
+                <option value="11:none">Match C</option>
+              </select>
+            </Field>
+            <Field label="Speed">
+              <select className={selectClass} value={settings.speed} onChange={(e) => setSettings({ ...settings, speed: Number(e.target.value) })}>
+                {[1, 3, 5, 10].map((s) => (
+                  <option key={s} value={s}>
+                    {s === 1 ? "Real time" : `${s}x${s === 5 ? " (recommended)" : ""}`}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <button
+            onClick={onStart}
+            disabled={!meta}
+            className="mt-6 w-full rounded-xl bg-accent py-3 text-[15px] font-semibold text-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            Kick off
+          </button>
+        </div>
       </div>
     </main>
   );
