@@ -30,6 +30,8 @@ What a viewer gets on top of that:
 - **The Coastal League.** Eight fictional clubs. The featured match is one of four on matchday 10; a live table moves with every goal, and goals elsewhere that matter to the two clubs on the pitch come through as "around the league" moments.
 - **Half-time and full-time recaps**, written by the same agents from stats-engine facts, for every viewer and language.
 - **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown.
+- **Watch any of the four matchday fixtures.** Every club has its own squad, colours, playing style and home ground; the rest of the league plays around whichever match you pick.
+- **Studio mode.** For broadcasters: no caption airs until a producer approves it, and a producer's own edits are checked by the Verifier against the live match before they go out.
 - **Broadcast touches:** goal banner and animated goal replays, scorers on the scoreboard, a shot map in analyst mode, a live card for the player you follow, a win-probability bar and a scores ticker.
 
 ## How it works
@@ -117,7 +119,7 @@ Everything is synthetic, with made-up clubs and players. The simulator is a poss
 ```bash
 cd backend
 uv sync
-uv run pytest                                   # 34 tests
+uv run pytest                                   # 36 tests
 PITCHSIDE_PROVIDER=templates uv run python -m pitchside.run   # whole match, no model needed
 cp .env.example .env                            # add your Foundry endpoint, deployment and key
 uv run uvicorn pitchside.api:app --port 8000

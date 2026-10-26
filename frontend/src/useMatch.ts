@@ -4,6 +4,7 @@ import type { Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapsh
 export type Settings = {
   seed: number;
   storyline: string;
+  fixture: string;
   speed: number;
   club: string;
   player: string;
@@ -91,6 +92,7 @@ export function useMatch() {
       const params = new URLSearchParams({
         seed: String(s.seed),
         storyline: s.storyline,
+        fixture: s.fixture,
         speed: String(s.speed),
         profiles: profilesFor(s).join(","),
         langs: s.langs.join(","),

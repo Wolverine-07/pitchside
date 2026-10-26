@@ -19,6 +19,16 @@ from .roster import Club, Player, TeamStyle
 PITCH_X, PITCH_Y = 105.0, 68.0
 HALF_SECONDS = 45 * 60
 ATTACKERS = {"RW", "LW", "ST"}
+VENUES = {
+    "KSC": "Kingsport Harbour Ground",
+    "RVA": "The Riverside Bowl",
+    "AVU": "Ashvale Park",
+    "BWF": "Brightwater Quay",
+    "CHT": "Coldharbour Lane",
+    "DMA": "The Dunmore Works",
+    "EMW": "Eastmere Common",
+    "FHF": "Fairhaven Woodside",
+}
 WIDE = {"RB", "LB", "RW", "LW"}
 
 
@@ -259,7 +269,7 @@ class MatchSim:
         return {
             "home": club(self.home),
             "away": club(self.away),
-            "venue": "Kingsport Harbour Ground",
+            "venue": VENUES.get(self.home.code, f"{self.home.name} Stadium"),
             "seed": self.seed,
             "storyline": self.storyline,
             "pitch": {"length_m": PITCH_X, "width_m": PITCH_Y},

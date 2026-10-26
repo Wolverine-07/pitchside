@@ -153,9 +153,9 @@ async def speak(text: str, lang: str = "en") -> Response:
 
 
 @app.get("/api/meta")
-def match_meta(seed: int = 16, storyline: str = "comeback") -> dict:
+def match_meta(seed: int = 16, storyline: str = "comeback", fixture: str = "KSC-RVA") -> dict:
     """Clubs, rosters, venue and the league going into the matchday, so viewers can choose before kick-off."""
-    meta = simulate(seed, storyline)[0]["data"]
+    meta = matchday(seed, storyline, fixture)[0].events[0]["data"]
     meta["league"] = league_for([]).snapshot()
     meta["fixtures"] = [{"home": h, "away": a} for h, a in FIXTURES]
     return meta
@@ -171,7 +171,9 @@ def league_for(fixtures) -> LeagueState:
 
 
 @contextlib.asynccontextmanager
-async def broadcast(seed: int, storyline: str, profiles: list[str], langs: list[str]):
+async def broadcast(
+    seed: int, storyline: str, profiles: list[str], langs: list[str], fixture: str = "KSC-RVA"
+):
     """A Broadcast whose Analyst reads numbers over MCP, from this match only."""
     c = clients()
     key = uuid.uuid4().hex[:12]
@@ -180,7 +182,7 @@ async def broadcast(seed: int, storyline: str, profiles: list[str], langs: list[
         url=f"http://127.0.0.1:{os.getenv('PORT', '8000')}/mcp/",
         static_headers={MATCH_HEADER: key},
     )
-    fixtures = matchday(seed, storyline)
+    fixtures = matchday(seed, storyline, fixture)
     b = Broadcast(
         fixtures[0].events,
         c["fast"],
@@ -217,7 +219,10 @@ async def live_match(ws: WebSocket) -> None:
     profiles = _list(q.get("profiles"), "casual,analyst")
     langs = _list(q.get("langs"), "en")
     try:
-        async with broadcast(seed, storyline, profiles, langs) as (key, b):
+        async with broadcast(seed, storyline, profiles, langs, q.get("fixture", "KSC-RVA")) as (
+            key,
+            b,
+        ):
             await ws.send_json(
                 {"kind": "hello", "match_key": key, "provider": config().provider, "meta": None}
             )

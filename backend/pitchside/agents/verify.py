@@ -188,7 +188,8 @@ END_OF_MATCH = re.compile(
     re.IGNORECASE,
 )
 SINGULAR_CLUB = re.compile(
-    r"\b(Kingsport|Riverside)( City| Athletic)? (is|was|has|wins|keeps|holds|takes|looks|pushes|presses|"
+    r"\b(Kingsport|Riverside|Ashvale|Brightwater|Coldharbour|Dunmore|Eastmere|Fairhaven)"
+    r"( City| Athletic| United| FC| Town| Albion| Wanderers| Forest)? (is|was|has|wins|keeps|holds|takes|looks|pushes|presses|"
     r"battles|struggles|finds|makes|scores|leads|trails|dominates|controls|boasts|suffers|raises|drives|"
     r"seizes|grabs|needs|wants|shows|sits|plays|goes|turns|seems|remains|stays|gets|loses|misses)\b"
 )

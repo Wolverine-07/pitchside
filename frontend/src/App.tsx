@@ -76,6 +76,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>({
     seed: 16,
     storyline: "comeback",
+    fixture: "KSC-RVA",
     speed: 5,
     club: "RVA",
     player: "KSC-09",
@@ -89,11 +90,23 @@ export default function App() {
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
 
   useEffect(() => {
-    fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}`)
+    fetch(`/api/meta?seed=${settings.seed}&storyline=${settings.storyline}&fixture=${settings.fixture}`)
       .then((r) => r.json())
-      .then(setMeta)
+      .then((m: Meta) => {
+        setMeta(m);
+        // Keep the chosen club and player valid for whichever fixture is selected.
+        setSettings((s) => {
+          const codes = [m.home.code, m.away.code];
+          const attackers = [...m.home.players, ...m.away.players].filter((p) => p.starter && p.role === "ST");
+          return {
+            ...s,
+            club: codes.includes(s.club) ? s.club : m.away.code,
+            player: s.player.slice(0, 3) && codes.includes(s.player.slice(0, 3)) ? s.player : attackers[0]?.id ?? s.player,
+          };
+        });
+      })
       .catch(() => setMeta(null));
-  }, [settings.seed, settings.storyline]);
+  }, [settings.seed, settings.storyline, settings.fixture]);
 
   // ?kickoff starts straight away (handy for demos); ?mode=, ?lang= and ?tab= preselect the view.
   useEffect(() => {
@@ -101,6 +114,11 @@ export default function App() {
     if (q.get("mode")) setMode(q.get("mode") as Mode);
     if (q.get("lang")) setLang(q.get("lang") as Lang);
     if (q.get("tab") === "agents" || q.get("tab") === "league") setTab(q.get("tab") as "agents" | "league");
+    const fixture = q.get("fixture");
+    if (fixture && fixture !== settings.fixture) {
+      setSettings((x) => ({ ...x, fixture }));
+      return; // meta reloads for that fixture, then this runs again
+    }
     if (q.has("kickoff") && meta && view.status === "idle") {
       start({ ...settings, speed: Number(q.get("speed") ?? settings.speed) });
     }
@@ -363,7 +381,7 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
                   <div className="mt-1 text-xs text-soft">
                     {meta.league.league} · Matchday {meta.league.matchday} ·{" "}
                     {ordinal(meta.league.table.find((r) => r.code === meta.home.code)?.pos)} v{" "}
-                    {ordinal(meta.league.table.find((r) => r.code === meta.away.code)?.pos)} · three other games at the same time
+                    {ordinal(meta.league.table.find((r) => r.code === meta.away.code)?.pos)} in the table · three other games at the same time
                   </div>
                 )}
               </div>
@@ -394,16 +412,18 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
             <Field label="Match">
               <select
                 className={selectClass}
-                value={`${settings.seed}:${settings.storyline}`}
+                value={`${settings.seed}:${settings.storyline}:${settings.fixture}`}
                 onChange={(e) => {
-                  const [seed, storyline] = e.target.value.split(":");
-                  setSettings({ ...settings, seed: Number(seed), storyline });
+                  const [seed, storyline, fixture] = e.target.value.split(":");
+                  setSettings({ ...settings, seed: Number(seed), storyline, fixture });
                 }}
               >
-                <option value="16:comeback">The comeback (demo)</option>
-                <option value="3:none">Match A</option>
-                <option value="7:none">Match B</option>
-                <option value="11:none">Match C</option>
+                <optgroup label="Matchday 10">
+                  <option value="16:comeback:KSC-RVA">Kingsport City v Riverside Athletic (demo)</option>
+                  <option value="16:comeback:AVU-DMA">Ashvale United v Dunmore Albion</option>
+                  <option value="16:comeback:BWF-CHT">Brightwater FC v Coldharbour Town</option>
+                  <option value="16:comeback:FHF-EMW">Fairhaven Forest v Eastmere Wanderers</option>
+                </optgroup>
               </select>
             </Field>
             <Field label="Speed">

@@ -62,8 +62,11 @@ class Fixture:
         return f"{self.home}-{self.away}"
 
 
-def matchday(seed: int, storyline: str = "none") -> list[Fixture]:
-    """All four fixtures, simulated. The featured one uses the given seed and storyline."""
+def matchday(seed: int, storyline: str = "none", featured: str = "KSC-RVA") -> list[Fixture]:
+    """All four fixtures, simulated, with the featured one first.
+
+    The seeds depend only on `seed`, so the matchday is the same whichever match you watch;
+    the storyline only ever applies to Kingsport v Riverside."""
     all_clubs = clubs()
     rng = random.Random(seed * 7919)
     out = []
@@ -78,6 +81,7 @@ def matchday(seed: int, storyline: str = "none") -> list[Fixture]:
             match_id=f"{h.lower()}-{a.lower()}-s{s}",
         )
         out.append(Fixture(h, a, sim.run(), {h: 0, a: 0}))
+    out.sort(key=lambda f: f.id != featured)
     return out
 
 
