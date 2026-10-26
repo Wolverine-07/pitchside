@@ -1,0 +1,60 @@
+{
+  "single agent": {
+    "status": "completed",
+    "counts": {
+      "errored": 0,
+      "failed": 0,
+      "passed": 5,
+      "total": 5
+    },
+    "per_evaluator": {
+      "groundedness": {
+        "passed": 5,
+        "failed": 0
+      },
+      "relevance": {
+        "passed": 5,
+        "failed": 0
+      },
+      "coherence": {
+        "passed": 5,
+        "failed": 0
+      },
+      "fluency": {
+        "passed": 5,
+        "failed": 0
+      }
+    },
+    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_d54862541dd84a12bbeda778a4f3bda6/run/evalrun_6c1a4fb0576746daa554c14f81389661",
+    "error": null
+  },
+  "Pitchside agent team": {
+    "status": "completed",
+    "counts": {
+      "errored": 0,
+      "failed": 1,
+      "passed": 4,
+      "total": 5
+    },
+    "per_evaluator": {
+      "groundedness": {
+        "passed": 4,
+        "failed": 1
+      },
+      "relevance": {
+        "passed": 5,
+        "failed": 0
+      },
+      "coherence": {
+        "passed": 5,
+        "failed": 0
+      },
+      "fluency": {
+        "passed": 5,
+        "failed": 0
+      }
+    },
+    "report_url": "https://ai.azure.com/nextgen/r/9SO-LAPCTBuxZdYV6VMZIg,rg-prashant.vinod-0218,,prashantvinod-4752-resource,prashantvinod-4752/build/evaluations/eval_b434672ac9464f85863c0d980156b07f/run/evalrun_d4afb81ce18c427495da93a855768ff5",
+    "error": null
+  }
+}

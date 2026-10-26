@@ -189,6 +189,11 @@ SINGULAR_CLUB = re.compile(
 )
 
 
+AT_MINUTES = re.compile(r"\bat (the )?\d+ minutes?\b", re.IGNORECASE)
+MINUTE_ORDINAL = re.compile(r"\b(\d{1,2})(?:st|nd|rd|th) minute\b", re.IGNORECASE)
+HALF_HOUR = re.compile(r"\bhalf[- ]an[- ]hour\b|\bhalf-hour\b|\bhalf hour\b", re.IGNORECASE)
+
+
 def check_context(text: str, minute: int | None) -> list[str]:
     """Things a model gets wrong that a viewer notices at once."""
     problems = []
@@ -197,6 +202,14 @@ def check_context(text: str, minute: int | None) -> list[str]:
     m = SINGULAR_CLUB.search(text)
     if m:
         problems.append(f"'{m.group(0)}': clubs take plural verbs in British English")
+    if AT_MINUTES.search(text):
+        problems.append('say "in the 41st minute", not "at 41 minutes"')
+    if minute is not None:
+        for said in MINUTE_ORDINAL.findall(text):
+            if abs(int(said) - minute) > 1:
+                problems.append(f"says minute {said}, but this moment is in minute {minute}")
+        if HALF_HOUR.search(text) and not 25 <= minute <= 40:
+            problems.append(f"mentions the half-hour, but it is minute {minute}")
     return problems
 
 

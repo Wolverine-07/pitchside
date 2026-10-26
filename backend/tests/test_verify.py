@@ -68,3 +68,13 @@ def test_context_checks_catch_common_model_mistakes():
     assert not check_context("Frantic finish as play breaks down", 88)
     assert check_context("Kingsport wins it back again", 64)
     assert not check_context("Kingsport win it back again", 64)
+
+
+def test_minute_references_must_match_the_moment():
+    from pitchside.agents.verify import check_context
+
+    assert check_context("Riverside take control after the half-hour", 53)
+    assert not check_context("Riverside take control after the half-hour", 33)
+    assert check_context("Wexavi scores at 68 minutes", 68)
+    assert not check_context("Wexavi scores in the 68th minute", 68)
+    assert check_context("Wexavi scores in the 70th minute", 68)
