@@ -370,12 +370,12 @@ def headline_for(m: Moment, clubs: dict[str, str]) -> str:
     }.get(m.type, m.type.replace("_", " ").title())
 
 
-def build_agents(client: Any, tools: list) -> dict[str, Agent | None]:
+def build_agents(client: Any, tools: list, deep_client: Any = None) -> dict[str, Agent | None]:
     if client is None:
         return dict.fromkeys(("director", "analyst", "narrator", "persona", "linguist"))
     return {
         "director": Agent(client, prompts.DIRECTOR, name="Director"),
-        "analyst": Agent(client, prompts.ANALYST, name="Analyst", tools=tools),
+        "analyst": Agent(deep_client or client, prompts.ANALYST, name="Analyst", tools=tools),
         "narrator": Agent(client, prompts.NARRATOR, name="Narrator"),
         "persona": Agent(client, prompts.PERSONA, name="Persona"),
         "linguist": Agent(client, prompts.LINGUIST, name="Linguist"),

@@ -10,7 +10,7 @@ import asyncio
 import time
 from collections import Counter
 
-from pitchside.agents.llm import chat_client, config
+from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import simulate
 
@@ -19,8 +19,11 @@ async def main(args: argparse.Namespace) -> None:
     cfg = config()
     print(f"provider: {cfg.provider} {cfg.model or ''}")
     events = simulate(args.seed, args.storyline)
+    c = clients()
     show = args.profiles.split(",")[0] + ":" + args.langs.split(",")[0]
-    b = Broadcast(events, chat_client(cfg), args.profiles.split(","), args.langs.split(","))
+    b = Broadcast(
+        events, c["fast"], args.profiles.split(","), args.langs.split(","), deep_client=c["deep"]
+    )
     t0, steps, cards, fallbacks = time.perf_counter(), Counter(), 0, 0
     async for item in b.run():
         if item["kind"] == "overlay" and item["overlay"]["type"] == "insight_card":

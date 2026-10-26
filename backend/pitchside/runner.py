@@ -29,11 +29,12 @@ class Broadcast:
         profiles: list[str] | None = None,
         langs: list[str] | None = None,
         state: MatchState | None = None,
+        deep_client=None,
     ) -> None:
         self.events = list(events)
         self.state = state or MatchState()
         self.tools = StatsTools(self.state)
-        self.agents = build_agents(client, self.tools.agent_tools())
+        self.agents = build_agents(client, self.tools.agent_tools(), deep_client)
         self.workflow = build_workflow(self.agents)
         self.profiles = profiles or ["casual"]
         self.langs = langs or ["en"]

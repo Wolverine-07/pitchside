@@ -33,13 +33,20 @@ def config() -> ModelConfig:
     return ModelConfig(
         provider=provider,
         model=os.getenv("PITCHSIDE_MODEL") or os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-        endpoint=os.getenv("FOUNDRY_PROJECT_ENDPOINT") or os.getenv("AZURE_OPENAI_ENDPOINT"),
+        endpoint=os.getenv("FOUNDRY_PROJECT_ENDPOINT")
+        if provider == "foundry"
+        else os.getenv("AZURE_OPENAI_ENDPOINT"),
     )
 
 
-def chat_client(cfg: ModelConfig | None = None):
-    """Return an Agent Framework chat client, or None when running templates-only."""
+def chat_client(cfg: ModelConfig | None = None, model: str | None = None):
+    """Return an Agent Framework chat client, or None when running templates-only.
+
+    model overrides the deployment, so different agents can use different models.
+    """
     cfg = cfg or config()
+    if model:
+        cfg = ModelConfig(cfg.provider, model, cfg.endpoint)
     if cfg.provider == "templates":
         return None
     if cfg.provider == "foundry":
@@ -67,3 +74,11 @@ def chat_client(cfg: ModelConfig | None = None):
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
         )
     raise ValueError(f"unknown PITCHSIDE_PROVIDER: {cfg.provider}")
+
+
+def clients() -> dict:
+    """Fast model for live agents; optional deeper model (PITCHSIDE_DEEP_MODEL) for the Analyst."""
+    cfg = config()
+    fast = chat_client(cfg)
+    deep_model = os.getenv("PITCHSIDE_DEEP_MODEL")
+    return {"fast": fast, "deep": chat_client(cfg, deep_model) if deep_model and fast else fast}
