@@ -855,7 +855,7 @@ export function AgentSummary({ traces }: { traces: Trace[] }) {
 export function AgentTrace({ traces }: { traces: Trace[] }) {
   if (!traces.length)
     return (
-      <Empty text="Each moment's path through the six agents shows up here." />
+      <Empty text="Each moment's path through the agents shows up here." />
     );
   return (
     <div className="space-y-2.5">

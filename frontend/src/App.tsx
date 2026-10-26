@@ -311,7 +311,7 @@ export default function App() {
               )}
             </div>
             <div className="shrink-0 border-t border-line px-4 py-2.5 text-[11px] text-muted">
-              {view.provider === "templates" ? "Template mode: no model connected" : "Six agents on Microsoft Foundry · every number verified"}
+              {view.provider === "templates" ? "Template mode: no model connected" : "Seven agents on Microsoft Foundry · every number verified"}
             </div>
           </aside>
         </main>
