@@ -59,3 +59,12 @@ def test_template_lines_always_verify():
         line = template_line(m, st.names, clubs)
         result = verify(line, facts, st.names)
         assert result, (line, result.problems)
+
+
+def test_context_checks_catch_common_model_mistakes():
+    from pitchside.agents.verify import check_context
+
+    assert check_context("Frantic finish as play breaks down", 10)
+    assert not check_context("Frantic finish as play breaks down", 88)
+    assert check_context("Kingsport wins it back again", 64)
+    assert not check_context("Kingsport win it back again", 64)

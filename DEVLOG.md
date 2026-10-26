@@ -13,3 +13,7 @@ Short notes on decisions and dead ends, newest last.
 - Oct 26: The Verifier is plain code, not another model call. It checks every number in a caption against the stats engine, and the Analyst's cited numbers are matched metric by metric. A model can't argue its way past it.
 - Oct 26: Installing the `agent-framework` meta-package pulled in ~30 integrations (including a 120 MB SDK) and stalled; switched to core + foundry + openai + orchestrations only.
 - Oct 26: Templates-only mode runs a full match in 0.5 s with 15 moments on air, so the app works even with no model at all.
+- Oct 26: First real runs on gpt-4.1-mini (Poland Central, Azure for Students). All captions verified, but reading them showed problems the number check can't see: "frantic finish" in the 10th minute, "Kingsport wins", and a team's pressing credited to one player. Added context and grammar checks to the Verifier and stopped naming a player on team moments. Now the Verifier sends a few drafts back each match and the rewrites come out right.
+- Oct 26: gpt-5.4-mini has no quota on the student subscription, so everything runs on gpt-4.1-mini for now (code supports a separate deeper model for the Analyst).
+- Oct 26: The runner used to pause the match while the agents worked (~14 s per moment). Live mode now streams events continuously and a background worker delivers overlays when they're ready.
+- Oct 26: Agents read numbers over MCP per match: the API gives each live match a key and the Analyst's MCP client sends it as a header.

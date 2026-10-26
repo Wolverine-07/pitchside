@@ -374,6 +374,7 @@ class MatchState:
         if cooldown_s and ev["t_ms"] - self._cooldown.get(k, -(10**9)) < cooldown_s * 1000:
             return []
         self._cooldown[k] = ev["t_ms"]
+        team_level = type_ in {"pressing_spell", "momentum_swing", "chaos_spike"}
         return [
             Moment(
                 id=f"mo-{ev['event_id']}-{type_}",
@@ -381,7 +382,7 @@ class MatchState:
                 t_ms=ev["t_ms"],
                 minute=ev.get("minute", self.minute),
                 team=team,
-                player=player or ev.get("player"),
+                player=None if team_level else (player or ev.get("player")),
                 significance=min(100, significance),
                 summary=summary,
                 evidence=evidence,

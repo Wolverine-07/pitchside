@@ -14,6 +14,7 @@ from collections.abc import Callable
 
 from agent_framework import FunctionTool, tool
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 
 from pitchside.stats.state import MatchState
 
@@ -74,44 +75,55 @@ class StatsTools:
         }
 
 
-def build_mcp_server(get_state: Callable[[], MatchState]) -> MCPServer:
-    """MCP server over the live match. get_state returns the current MatchState."""
+MATCH_HEADER = "x-pitchside-match"
+
+
+def _match_key(ctx: Context | None) -> str | None:
+    try:
+        return ctx.request_context.request.headers.get(MATCH_HEADER)
+    except Exception:  # noqa: BLE001 - stdio clients have no HTTP request
+        return None
+
+
+def build_mcp_server(get_state: Callable[[str | None], MatchState]) -> MCPServer:
+    """MCP server over live matches. get_state(key) returns the MatchState for the
+    x-pitchside-match header, or the latest match when the header is missing."""
     server = MCPServer(
         name="pitchside-stats",
         instructions="Live statistics for the current synthetic match. Every number Pitchside shows comes from here.",
     )
 
-    def _tools() -> StatsTools:
-        return StatsTools(get_state())
+    def _tools(ctx: Context | None) -> StatsTools:
+        return StatsTools(get_state(_match_key(ctx)))
 
     @server.tool()
-    def match_snapshot() -> str:
+    def match_snapshot(ctx: Context | None = None) -> str:
         """Score, minute, possession, momentum, chaos index and xG for the live match."""
-        return json.dumps(_tools().match_snapshot())
+        return json.dumps(_tools(ctx).match_snapshot())
 
     @server.tool()
-    def team_metrics(team: str, window_s: int | None = None) -> str:
+    def team_metrics(team: str, window_s: int | None = None, ctx: Context | None = None) -> str:
         """Team metrics (possession, passing, pressure, xG, regains, PPDA, tempo). window_s = last N seconds."""
-        return json.dumps(_tools().team_metrics(team, window_s))
+        return json.dumps(_tools(ctx).team_metrics(team, window_s))
 
     @server.tool()
-    def player_summary(player_id: str) -> str:
+    def player_summary(player_id: str, ctx: Context | None = None) -> str:
         """Player stats for an id like KSC-09."""
-        return json.dumps(_tools().player_summary(player_id))
+        return json.dumps(_tools(ctx).player_summary(player_id))
 
     @server.tool()
-    def chaos_index(window_s: int = 300) -> str:
+    def chaos_index(window_s: int = 300, ctx: Context | None = None) -> str:
         """Control (0) vs chaos (1) over the last window_s seconds."""
-        return json.dumps(_tools().chaos_index(window_s))
+        return json.dumps(_tools(ctx).chaos_index(window_s))
 
     @server.tool()
-    def recent_moments(limit: int = 5) -> str:
+    def recent_moments(limit: int = 5, ctx: Context | None = None) -> str:
         """Most recent flagged moments with their evidence."""
-        return json.dumps(_tools().recent_moments(limit))
+        return json.dumps(_tools(ctx).recent_moments(limit))
 
     @server.tool()
-    def roster(team: str) -> str:
+    def roster(team: str, ctx: Context | None = None) -> str:
         """Player ids, names, numbers and roles for a team."""
-        return json.dumps(_tools().roster(team))
+        return json.dumps(_tools(ctx).roster(team))
 
     return server

@@ -79,6 +79,8 @@ def allowed_numbers(facts: dict) -> set[float]:
         if isinstance(v, (int, float)):
             out.add(round(float(v), 1))
             out.add(float(round(v)))
+            out.add(abs(round(float(v), 1)))  # "momentum -54" is said as "54"
+            out.add(float(abs(round(v))))
             if isinstance(v, float) and 0 < v < 1:
                 out.add(float(round(v * 100)))  # 0.62 -> 62%
         elif isinstance(v, str):
@@ -176,8 +178,35 @@ def _lookup(metric, team, player, window_s, sheet: dict, evidence: list[dict]):
     return None
 
 
+END_OF_MATCH = re.compile(
+    r"\b(late on|closing (minutes|stages)|final (minutes|five|stages|whistle)|dying (minutes|seconds)|"
+    r"frantic finish|final moments|late (chaos|surge|drama|on)|control late|with (just )?minutes (left|to go))\b",
+    re.IGNORECASE,
+)
+SINGULAR_CLUB = re.compile(
+    r"\b(Kingsport|Riverside)( City| Athletic)? (is|was|has|wins|keeps|holds|takes|looks|pushes|presses|"
+    r"battles|struggles|finds|makes|scores|leads|trails|dominates|controls)\b"
+)
+
+
+def check_context(text: str, minute: int | None) -> list[str]:
+    """Things a model gets wrong that a viewer notices at once."""
+    problems = []
+    if minute is not None and minute < 80 and END_OF_MATCH.search(text):
+        problems.append(f"talks about the end of the match, but it is only minute {minute}")
+    m = SINGULAR_CLUB.search(text)
+    if m:
+        problems.append(f"'{m.group(0)}': clubs take plural verbs in British English")
+    return problems
+
+
 def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) -> Check:
+    moment = facts.get("moment")
+    minute = moment.get("minute") if isinstance(moment, dict) else None
     problems = (
-        check_numbers(text, facts) + check_names(text, facts, roster) + check_style(text, live)
+        check_numbers(text, facts)
+        + check_names(text, facts, roster)
+        + check_style(text, live)
+        + check_context(text, minute)
     )
     return Check(not problems, problems)

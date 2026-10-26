@@ -75,7 +75,7 @@ def insight_card(
         match_id,
         m.t_ms,
         {
-            "headline": headline,
+            "headline": headline[:1].upper() + headline[1:],
             "body": body,
             "lang": lang,
             "moment_type": m.type,

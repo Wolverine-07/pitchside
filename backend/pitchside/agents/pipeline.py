@@ -49,6 +49,7 @@ class Job:
     clubs: dict[str, str]
     profiles: list[str]
     langs: list[str]
+    players: list[str] = field(default_factory=list)
     recent_lines: list[str] = field(default_factory=list)
     insight: dict | None = None
     cited: list[dict] = field(default_factory=list)
@@ -154,6 +155,8 @@ class DirectorExec(Executor):
                 "rule: highest significance, varied type",
                 "fallback" if self.agent else "rule",
             )
+            if reply is None and len(batch.jobs) == len(must):
+                note, status = "always airs", "rule"
         for j in must:
             if j not in picked:
                 picked.insert(0, j)
@@ -199,7 +202,7 @@ class NarratorExec(Executor):
         prompt = {
             "insight": {k: job.insight.get(k) for k in ("claim", "why")} if job.insight else {},
             "numbers_you_may_use": job.cited + [e.__dict__ for e in job.moment.evidence],
-            "minute": job.moment.minute,
+            "match_minute_now": f"{job.moment.minute} of 90",
             "score": job.sheet["snapshot"]["score"],
             "clubs": job.clubs,
             "player": job.names.get(job.moment.player or ""),
@@ -230,6 +233,8 @@ class VerifierExec(Executor):
             text = f"{cand.get('headline', '')}. {cand.get('line', '')}"
             result = verify(text, facts, job.names)
             if result:
+                h = cand.get("headline", "").strip()
+                cand["headline"] = h[:1].upper() + h[1:]
                 job.caption, job.status = cand, "pass"
                 job.log("verifier", t0, "pass", f"draft {job.attempt + 1} accepted")
                 await ctx.send_message(job)

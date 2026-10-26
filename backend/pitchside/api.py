@@ -11,8 +11,11 @@ GET  /api/health    provider and version
 from __future__ import annotations
 
 import contextlib
+import os
+import uuid
 from pathlib import Path
 
+from agent_framework import MCPStreamableHTTPTool
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,12 +25,14 @@ from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
 from pitchside.stats.state import MatchState
-from pitchside.tools import build_mcp_server
+from pitchside.tools import MATCH_HEADER, build_mcp_server
 
 LIVE: dict[str, MatchState] = {}
 
 
-def latest_state() -> MatchState:
+def latest_state(key: str | None = None) -> MatchState:
+    if key and key in LIVE:
+        return LIVE[key]
     if not LIVE:
         # Nobody is watching yet: serve a finished demo match so MCP clients still get answers.
         st = MatchState()
@@ -71,19 +76,40 @@ def health() -> dict:
     }
 
 
+@contextlib.asynccontextmanager
+async def broadcast(seed: int, storyline: str, profiles: list[str], langs: list[str]):
+    """A Broadcast whose Analyst reads numbers over MCP, from this match only."""
+    c = clients()
+    key = uuid.uuid4().hex[:12]
+    stats_mcp = MCPStreamableHTTPTool(
+        name="pitchside-stats",
+        url=f"http://127.0.0.1:{os.getenv('PORT', '8000')}/mcp/",
+        static_headers={MATCH_HEADER: key},
+    )
+    b = Broadcast(
+        simulate(seed, storyline),
+        c["fast"],
+        profiles,
+        langs,
+        deep_client=c["deep"],
+        analyst_tools=[stats_mcp] if c["fast"] else None,
+    )
+    LIVE[key] = b.state
+    try:
+        async with contextlib.AsyncExitStack() as stack:
+            if c["fast"]:
+                await stack.enter_async_context(stats_mcp)
+            yield key, b
+    finally:
+        LIVE.pop(key, None)
+
+
 @app.get("/api/overlays")
 async def overlay_timeline(
     seed: int = 16, storyline: str = "comeback", profiles: str = "casual", langs: str = "en"
 ):
-    c = clients()
-    b = Broadcast(
-        simulate(seed, storyline),
-        c["fast"],
-        _list(profiles, "casual"),
-        _list(langs, "en"),
-        deep_client=c["deep"],
-    )
-    return [item["overlay"] async for item in b.run() if item["kind"] == "overlay"]
+    async with broadcast(seed, storyline, _list(profiles, "casual"), _list(langs, "en")) as (_, b):
+        return [item["overlay"] async for item in b.run() if item["kind"] == "overlay"]
 
 
 @app.websocket("/ws/match")
@@ -92,24 +118,18 @@ async def live_match(ws: WebSocket) -> None:
     q = ws.query_params
     seed, storyline = int(q.get("seed", 16)), q.get("storyline", "comeback")
     speed = float(q.get("speed", 10))
-    c = clients()
-    b = Broadcast(
-        simulate(seed, storyline),
-        c["fast"],
-        _list(q.get("profiles"), "casual,analyst"),
-        _list(q.get("langs"), "en"),
-        deep_client=c["deep"],
-    )
-    key = f"{id(ws)}"
-    LIVE[key] = b.state
+    profiles = _list(q.get("profiles"), "casual,analyst")
+    langs = _list(q.get("langs"), "en")
     try:
-        async for item in b.run(speed=speed):
-            await ws.send_json(item)
-        await ws.send_json({"kind": "done"})
+        async with broadcast(seed, storyline, profiles, langs) as (key, b):
+            await ws.send_json(
+                {"kind": "hello", "match_key": key, "provider": config().provider, "meta": None}
+            )
+            async for item in b.run(speed=speed):
+                await ws.send_json(item)
+            await ws.send_json({"kind": "done"})
     except WebSocketDisconnect:
         pass
-    finally:
-        LIVE.pop(key, None)
 
 
 STATIC = Path(__file__).resolve().parents[2] / "frontend" / "dist"

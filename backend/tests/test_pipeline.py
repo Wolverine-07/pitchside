@@ -53,3 +53,13 @@ def test_overlays_start_after_their_moment():
         if i["kind"] == "overlay" and i["overlay"]["type"] == "insight_card"
     ):
         assert o["start_t_ms"] >= o["anchor_t_ms"]
+
+
+def test_live_mode_streams_events_while_agents_work_in_the_background():
+    async def go():
+        return [item async for item in Broadcast(simulate(16, "comeback")).run(speed=1e6)]
+
+    items = asyncio.run(go())
+    kinds = [i["kind"] for i in items]
+    assert kinds.count("event") == len(simulate(16, "comeback"))
+    assert kinds.count("trace") == len(run_match() and [i for i in run_match() if i["kind"] == "trace"])
