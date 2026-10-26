@@ -42,3 +42,44 @@ def chaos_index(turnovers_per_min: float, avg_possession_s: float, duels_per_min
 def momentum_display(raw: float) -> int:
     """Map the raw momentum sum to -100 (away on top) .. +100 (home on top)."""
     return round(100 * math.tanh(raw / 0.6))
+
+
+def win_probability(
+    home_goals: int, away_goals: int, home_xg: float, away_xg: float, minute: float
+) -> dict[str, float]:
+    """Live home / draw / away probabilities from the score, chance quality so far and time left.
+
+    Each side's scoring rate is a blend of a league-average prior (1.35 goals per 90) and its
+    own xG rate in this match, weighted towards the match as it goes on. Remaining goals are
+    Poisson; we sum over plausible final scores.
+    """
+    played = max(minute, 1.0)
+    remaining = max(0.0, 93.0 - minute) / 90.0
+    weight = min(1.0, played / 60.0)
+    prior = 1.35
+
+    def rate(xg: float) -> float:
+        return ((1 - weight) * prior + weight * (xg / played * 90.0)) * remaining
+
+    lh, la = rate(home_xg), rate(away_xg)
+
+    def pmf(lam: float, k: int) -> float:
+        return math.exp(-lam) * lam**k / math.factorial(k)
+
+    home = draw = away = 0.0
+    for i in range(8):
+        for j in range(8):
+            p = pmf(lh, i) * pmf(la, j)
+            h, a = home_goals + i, away_goals + j
+            if h > a:
+                home += p
+            elif h == a:
+                draw += p
+            else:
+                away += p
+    total = home + draw + away
+    return {
+        "home": round(home / total, 3),
+        "draw": round(draw / total, 3),
+        "away": round(away / total, 3),
+    }

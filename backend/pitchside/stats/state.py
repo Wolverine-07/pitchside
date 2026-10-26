@@ -13,7 +13,7 @@ import math
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 
-from .metrics import chaos_index, momentum_display, pass_difficulty, threat
+from .metrics import chaos_index, momentum_display, pass_difficulty, threat, win_probability
 
 ON_BALL = {"pass", "carry", "dribble", "shot", "corner", "clearance"}
 REGAIN = {"tackle", "interception"}
@@ -286,6 +286,21 @@ class MatchState:
         avg_s = (sum(spells) / len(spells) / 1000) if spells else 30.0
         return chaos_index(turnovers / minutes, avg_s, duels / minutes)
 
+    def win_probability(self) -> dict[str, int]:
+        """Live chance of each result, in percent, keyed by club code and 'draw'."""
+        a, b = self.teams
+        xg = {
+            t: sum(e["xg"] for e in self.events if e["type"] == "shot" and e["team"] == t)
+            for t in self.teams
+        }
+        minute = self.minute + (45 if self.period == 2 and self.minute < 45 else 0)
+        p = win_probability(self.score[a], self.score[b], xg[a], xg[b], minute)
+        return {
+            a: round(100 * p["home"]),
+            "draw": round(100 * p["draw"]),
+            b: round(100 * p["away"]),
+        }
+
     def momentum(self) -> int:
         decay = math.exp(-(self.t_ms - self.momentum_t) / 1000 / MOMENTUM_TAU_S)
         return momentum_display(self.momentum_raw * decay)
@@ -323,6 +338,7 @@ class MatchState:
             "momentum": self.momentum(),
             "chaos_5min": self.chaos(300),
             "xg": {t: self.team_metrics(t)["xg"] for t in self.teams},
+            "win_probability_pct": self.win_probability(),
         }
 
     def other(self, team: str) -> str:

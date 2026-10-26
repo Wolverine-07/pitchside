@@ -38,7 +38,7 @@ from .verify import check_audience, check_citations, check_names, check_numbers,
 
 MAX_ATTEMPTS = 2
 CALL_TIMEOUT_S = 12.0
-ALWAYS_AIR = {"goal", "big_chance", "card"}
+ALWAYS_AIR = {"goal", "big_chance", "card", "half_time_recap", "full_time_recap"}
 
 
 @dataclass
@@ -217,6 +217,12 @@ class NarratorExec(Executor):
             "player": job.names.get(job.moment.player or ""),
             "recent_lines": job.recent_lines[-5:],
         }
+        if job.moment.type.endswith("_recap"):
+            prompt["format"] = (
+                "RECAP: headline of at most eight words, then three short sentences (at most 60 words) "
+                "telling the story of the half: the result, why it went that way, and one standout. "
+                "You may use up to four numbers."
+            )
         if job.problems:
             prompt["verifier_rejected_previous_draft_because"] = job.problems
         reply = await ask(self.agent, json.dumps(prompt))
@@ -240,8 +246,9 @@ class VerifierExec(Executor):
         problems: list[str] = []
         for cand in job.candidates:
             text = f"{cand.get('headline', '')}. {cand.get('line', '')}"
-            result = verify(text, facts, job.names)
-            if result and (audience := check_audience(text, "casual")):
+            recap = job.moment.type.endswith("_recap")
+            result = verify(text, facts, job.names, live=not recap)
+            if result and (audience := check_audience(text, "casual", 4 if recap else 2)):
                 # The base caption is what casual viewers see if a rewrite fails, so it must suit them.
                 result.ok, result.problems = False, audience
             if result:
@@ -290,7 +297,9 @@ class PersonaExec(Executor):
             return ["no rewrite"]
         text = f"{v.get('headline', '')}. {v.get('line', '')}"
         check = verify(text, job.facts(profile), job.names, live=False)
-        return check.problems or check_audience(text, profile)
+        return check.problems or check_audience(
+            text, profile, 4 if job.moment.type.endswith("_recap") else 2
+        )
 
     def _prompt(
         self, job: Job, profiles: list[str], fix: dict[str, list[str]] | None = None
@@ -404,6 +413,8 @@ def headline_for(m: Moment, clubs: dict[str, str]) -> str:
         "player_speed": "Top speed",
         "milestone": "Milestone",
         "around_the_league": "Around the league",
+        "half_time_recap": "Half-time",
+        "full_time_recap": "Full-time",
     }.get(m.type, m.type.replace("_", " ").title())
 
 

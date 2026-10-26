@@ -5,6 +5,8 @@ import {
   CommentaryFeed,
   ControlGauge,
   GoalBanner,
+  isRecap,
+  RecapCard,
   LeagueTable,
   LowerThird,
   MatchStats,
@@ -103,7 +105,8 @@ export default function App() {
   const profile = mode === "club" ? `club:${settings.club}` : mode === "player" ? `player:${settings.player}` : mode;
   const key = `${profile}:${lang}`;
   const myCards = useMemo(() => view.cards.filter((c) => c.profile_key === key), [view.cards, key]);
-  const latest = myCards.at(-1);
+  const latest = myCards.filter((c) => !isRecap(c)).at(-1);
+  const latestRecap = myCards.filter(isRecap).at(-1);
   const started = view.status !== "idle";
 
   return (
@@ -168,10 +171,11 @@ export default function App() {
                 <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
                 {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
                 <GoalBanner goal={view.lastGoal} meta={m} />
+                <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />
               </Pitch>
             </div>
-            <div className="grid h-[132px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
-              <Momentum data={view.momentum} meta={m} />
+            <div className="grid h-[150px] shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
+              <Momentum data={view.momentum} meta={m} goals={view.goals} />
               <MatchStats snapshot={view.snapshot} meta={m} />
               <ControlGauge value={view.snapshot?.chaos_5min} />
             </div>

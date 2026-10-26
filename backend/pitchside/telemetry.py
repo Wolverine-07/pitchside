@@ -7,6 +7,7 @@ and token count shows up in Foundry's tracing view.
 
 from __future__ import annotations
 
+import logging
 import os
 
 _done = False
@@ -35,5 +36,15 @@ def setup() -> bool:
             AzureMonitorMetricExporter(connection_string=conn),
         ],
     )
+    # Keep traces about the agents, not the HTTP chatter of the SDKs that send them.
+    for noisy in (
+        "azure",
+        "httpx",
+        "httpcore",
+        "urllib3",
+        "opentelemetry",
+        "agent_framework._workflows",
+    ):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     _done = True
     return True

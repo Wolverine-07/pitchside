@@ -15,7 +15,10 @@ const MOMENT_LABEL: Record<string, string> = {
   milestone: "Milestone",
   player_speed: "Top speed",
   around_the_league: "Around the league",
+  half_time_recap: "Half-time recap",
+  full_time_recap: "Full-time recap",
 };
+export const isRecap = (o?: Overlay) => !!o && String(o.content.moment_type).endsWith("_recap");
 export const momentLabel = (t: string) => MOMENT_LABEL[t] ?? t.replace("_", " ");
 
 /* ---------- scoreboard ---------- */
@@ -267,7 +270,7 @@ export function Panel({ title, right, children, className = "" }: { title: strin
   );
 }
 
-export function Momentum({ data, meta }: { data: { t: number; v: number }[]; meta: Meta | null }) {
+export function Momentum({ data, meta, goals = [] }: { data: { t: number; v: number }[]; meta: Meta | null; goals?: Goal[] }) {
   const w = 600,
     h = 64;
   const tMax = Math.max(95 * 60_000, data.at(-1)?.t ?? 0);
@@ -309,6 +312,11 @@ export function Momentum({ data, meta }: { data: { t: number; v: number }[]; met
             <path d={area} fill={away} fillOpacity="0.55" clipPath="url(#bottom)" />
           </>
         )}
+        {goals.map((g, i) => {
+          const x = ((g.minute + (g.minute > 45 ? 2 : 0)) / 95) * w;
+          const up = meta && g.team === meta.home.code;
+          return <circle key={i} cx={x} cy={up ? 5 : h - 5} r="4" fill={clubColor(meta, g.team)} stroke="white" strokeWidth="1.2" />;
+        })}
       </svg>
     </Panel>
   );
@@ -331,6 +339,26 @@ function Split({ label, home, away, meta, fmt = (v: number) => String(v) }: { la
   );
 }
 
+function WinProbability({ p, meta }: { p: Record<string, number>; meta: Meta }) {
+  const h = p[meta.home.code] ?? 0,
+    d = p.draw ?? 0,
+    a = p[meta.away.code] ?? 0;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="font-mono font-medium">{h}%</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">Win probability · draw {d}%</span>
+        <span className="font-mono font-medium">{a}%</span>
+      </div>
+      <div className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+        <div className="rounded-l-full transition-all duration-700" style={{ width: `${h}%`, background: meta.home.colors[0] }} />
+        <div className="bg-white/25 transition-all duration-700" style={{ width: `${d}%` }} />
+        <div className="rounded-r-full transition-all duration-700" style={{ width: `${a}%`, background: meta.away.colors[0] }} />
+      </div>
+    </div>
+  );
+}
+
 export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta: Meta | null }) {
   return (
     <Panel title="Match stats">
@@ -338,6 +366,7 @@ export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta
         <div className="space-y-3">
           <Split label="Possession %" home={snapshot.possession_pct[meta.home.code]} away={snapshot.possession_pct[meta.away.code]} meta={meta} />
           <Split label="Expected goals" home={snapshot.xg[meta.home.code]} away={snapshot.xg[meta.away.code]} meta={meta} fmt={(v) => v.toFixed(2)} />
+          {snapshot.win_probability_pct && <WinProbability p={snapshot.win_probability_pct} meta={meta} />}
         </div>
       ) : (
         <div className="text-sm text-muted">Waiting for kick-off</div>
@@ -374,7 +403,10 @@ export function CommentaryFeed({ cards, meta, liveId }: { cards: Overlay[]; meta
         const color = clubColor(meta, c.content.team);
         const minute = Math.floor(c.anchor_t_ms / 60000) + 1;
         return (
-          <li key={c.overlay_id} className={`rise rounded-lg border p-3 ${c.overlay_id === liveId ? "border-accent/50 bg-accent/5" : "border-line bg-panel-2/60"}`}>
+          <li
+            key={c.overlay_id}
+            className={`rise rounded-lg border p-3 ${isRecap(c) ? "border-warn/40 bg-warn/5" : c.overlay_id === liveId ? "border-accent/50 bg-accent/5" : "border-line bg-panel-2/60"}`}
+          >
             <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
               <span className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-soft">{minute}'</span>
               <span style={{ color }}>{momentLabel(c.content.moment_type)}</span>
@@ -589,6 +621,49 @@ export function PlayerCard({ stats, meta }: { stats: PlayerStats | null; meta: M
             <div className="text-[9px] uppercase tracking-[0.12em] text-muted">{k}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- recap ---------- */
+
+export function RecapCard({ card, meta, voice, lang }: { card: Overlay | undefined; meta: Meta | null; voice: boolean; lang: string }) {
+  const [shown, setShown] = useState<Overlay | undefined>();
+  useEffect(() => {
+    if (!card) return;
+    setShown(card);
+    if (voice) speak(`${card.content.headline}. ${card.content.body}`, lang);
+    const t = window.setTimeout(() => setShown(undefined), 14000);
+    return () => window.clearTimeout(t);
+  }, [card?.overlay_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!shown || !meta) return null;
+  const c = shown.content;
+  const score = (c.evidence as { metric: string; value: string }[]).find((e) => e.metric === "score")?.value ?? "";
+  const [, hg, ag] = score.match(/(\d+)-(\d+)/) ?? [];
+  return (
+    <div className="rise absolute inset-0 grid place-items-center bg-black/55 backdrop-blur-[2px]">
+      <div className="w-[min(620px,86%)] overflow-hidden rounded-xl bg-[rgba(7,11,20,.94)] shadow-2xl ring-1 ring-white/10">
+        <div className="flex items-center justify-between border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
+          <span className="text-warn">{momentLabel(c.moment_type)}</span>
+          <span className="flex items-center gap-1 text-good">
+            <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 6.5 5 9l5-6" />
+            </svg>
+            Verified
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-5 px-5 pt-5">
+          <span className="text-right text-[15px] font-semibold">{meta.home.name}</span>
+          <span className="font-mono text-4xl">
+            {hg ?? "-"} : {ag ?? "-"}
+          </span>
+          <span className="text-[15px] font-semibold">{meta.away.name}</span>
+        </div>
+        <div className="px-6 pt-4 pb-6 text-center">
+          <div className="text-lg font-semibold">{c.headline}</div>
+          <p className="mt-2 text-[14px] leading-relaxed text-soft">{c.body}</p>
+        </div>
       </div>
     </div>
   );

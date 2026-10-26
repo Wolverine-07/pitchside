@@ -19,7 +19,7 @@ from pitchside.tools import StatsTools
 
 WORKERS = 3  # moments handled in parallel during live play
 BATCH_EVERY_MS = 20_000  # the Director sees new candidates every 20 s of match time
-URGENT = {"goal", "card", "big_chance"}
+URGENT = {"goal", "card", "big_chance", "half_time_recap", "full_time_recap"}
 BROADCAST_DELAY_MS = 4_000
 
 
@@ -103,6 +103,47 @@ class Broadcast:
             evidence=evidence,
         )
 
+    def _recap_moment(self, ev: dict) -> Moment:
+        """Half-time or full-time: the facts a recap may use, gathered from the stats engine."""
+        st = self.state
+        kind = "half_time_recap" if ev["period"] == 1 else "full_time_recap"
+        a, b = st.teams
+        ev_list = [Evidence("score", st.score_line())]
+        for t in (a, b):
+            m = st.team_metrics(t)
+            ev_list += [
+                Evidence("possession_pct", m["possession_pct"], t),
+                Evidence("xg", m["xg"], t),
+                Evidence("shots", m["shots"], t),
+            ]
+        for e in st.events:
+            if e["type"] == "goal":
+                ev_list.append(Evidence("goal_minute", e["minute"], e["team"], e["player"]))
+        players = [p for p in st.names if st.player[p]["passes"]]
+        if players:
+            top = max(players, key=lambda p: st.player[p]["passes"])
+            ev_list.append(Evidence("passes", st.player[top]["passes"], st.team_of(top), top))
+        ran = [p for p in st.physical if st.physical[p].get("distance_m")]
+        if ran:
+            far = max(ran, key=lambda p: st.physical[p]["distance_m"])
+            km = round(st.physical[far]["distance_m"] / 1000, 1)
+            ev_list.append(Evidence("distance_km", km, st.team_of(far), far))
+        if self.league:
+            for t in (a, b):
+                ev_list.append(Evidence("live_position", self.league.position(t), t))
+        label = "Half-time" if kind == "half_time_recap" else "Full-time"
+        return Moment(
+            id=f"recap-{ev['period']}",
+            type=kind,
+            t_ms=ev["t_ms"],
+            minute=45 if ev["period"] == 1 else 90,
+            team=None,
+            player=None,
+            significance=100,
+            summary=f"{label}: {st.score_line()}",
+            evidence=ev_list,
+        )
+
     def _advance_league(self, t_ms: int) -> tuple[list[Moment], bool]:
         """Play the other fixtures up to t_ms. Returns new moments and whether any score changed."""
         moments, changed = [], False
@@ -146,6 +187,8 @@ class Broadcast:
                 elsewhere, league_changed = self._advance_league(until)
                 league_changed |= self.league.apply(self.featured, ev)
                 moments = [*moments, *elsewhere]
+            if ev["type"] == "period_end":
+                moments = [*moments, self._recap_moment(ev)]
             yield {"kind": "event", "event": ev}
             if self.league and (
                 league_changed

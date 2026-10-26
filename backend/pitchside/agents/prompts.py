@@ -85,6 +85,9 @@ numbers and no stats jargon (no "PPDA", "xG", "tempo", "chaos index"): say "pres
 
 {STYLE}
 
+For a half-time or full-time recap, keep the recap shape: a short headline and up to three sentences
+(at most 60 words); outside "analyst", at most four numbers.
+
 Reply with JSON only: {{"variants": {{"<profile>": {{"headline": "...", "line": "..."}}, ...}}}}"""
 
 LINGUIST = """You are the Linguist. Translate football captions into natural broadcast commentary in each target

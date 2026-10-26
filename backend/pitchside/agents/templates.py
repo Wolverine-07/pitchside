@@ -34,6 +34,13 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             return f"{str(_ev(m, 'card')).title()} card for {who}."
         case "player_speed":
             return f"{who} clocked at {_ev(m, 'speed_kmh')} km/h."
+        case "half_time_recap" | "full_time_recap":
+            when = "Half-time" if m.type == "half_time_recap" else "Full-time"
+            scorers = [
+                names.get(e.player or "", "") for e in m.evidence if e.metric == "goal_minute"
+            ]
+            goals = f"Goals from {', '.join(scorers)}." if scorers else "No goals yet."
+            return f"{when}, and it's {_ev(m, 'score')}. {goals}"
         case "around_the_league":
             pos = _ev(m, "live_position")
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos in (1, 2, 3) else 0, "th")

@@ -26,6 +26,7 @@ export type Snapshot = {
   momentum: number;
   chaos_5min: number;
   xg: Record<string, number>;
+  win_probability_pct?: Record<string, number>;
 };
 
 export type Evidence = {

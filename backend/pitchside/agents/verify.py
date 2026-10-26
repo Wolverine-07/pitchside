@@ -223,7 +223,7 @@ JARGON = re.compile(
 )
 
 
-def check_audience(text: str, profile: str) -> list[str]:
+def check_audience(text: str, profile: str, max_numbers: int = 2) -> list[str]:
     """Analysts get the numbers; everyone else gets the story."""
     if profile.startswith("analyst"):
         return []
@@ -232,8 +232,8 @@ def check_audience(text: str, profile: str) -> list[str]:
     jargon = JARGON.search(text)
     if jargon:
         problems.append(f"stats jargon '{jargon.group(0)}' in a {kind} caption")
-    if len(NUM.findall(text)) > 2:
-        problems.append(f"more than two numbers in a {kind} caption")
+    if len(NUM.findall(text)) > max_numbers:
+        problems.append(f"more than {max_numbers} numbers in a {kind} caption")
     return problems
 
 
