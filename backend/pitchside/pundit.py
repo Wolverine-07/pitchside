@@ -13,12 +13,14 @@ from pitchside.agents import prompts
 from pitchside.agents.critic import check_reasons
 from pitchside.agents.pipeline import ask
 from pitchside.agents.verify import (
+    check_cards,
     check_citations,
     check_language,
     check_leader,
     check_names,
     check_numbers,
     check_real_world,
+    check_scorelines,
     check_style,
 )
 from pitchside.stats.state import MatchState
@@ -58,6 +60,7 @@ async def answer(
         "clubs": {r: n for r, n in (getattr(state.league, "names", None) or {}).items()} or None,
     }
     clubs = {state.meta[s]["code"]: state.meta[s]["name"] for s in ("home", "away")}
+    goals = [e["team"] for e in state.events if e["type"] == "goal"]
     problems: list[str] = []
     for attempt in (1, 2):
         t0 = time.perf_counter()
@@ -89,7 +92,9 @@ async def answer(
             + check_style(text, live=False)
             + check_language(text, lang)
             + check_real_world(text)
-            + check_leader(text, dict(state.score))
+            + check_leader(text, {t: state.score[t] for t in state.teams})
+            + check_scorelines(text, goals, state.teams)
+            + check_cards(text, request["cards"])
         )
         if len(text.split()) < 5:
             problems.append("not an answer about the match")

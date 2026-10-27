@@ -326,7 +326,8 @@ def check_language(text: str, lang: str) -> list[str]:
 REAL_WORLD = re.compile(
     r"\b(Premier League|Champions League|Manchester|Arsenal|Chelsea|Liverpool|Tottenham|Everton|"
     r"Newcastle|Aston Villa|West Ham|Brighton|Wolves|Fulham|Brentford|Crystal Palace|Nottingham|"
-    r"Bournemouth|Leicester|Leeds|Burnley|Sunderland)\b",
+    r"Bournemouth|Leicester|Leeds|Burnley|Sunderland|Man (United|Utd|City)|Spurs|Gunners|"
+    r"Real Madrid|Barcelona|Bayern|Juventus|PSG|La Liga|Serie A|Bundesliga)\b",
     re.IGNORECASE,
 )
 
@@ -371,3 +372,64 @@ def check_leader(text: str, score: dict[str, int] | None) -> list[str]:
         if (ahead and score[code] <= other) or (not ahead and score[code] >= other):
             problems.append(f"'{m.group(0)}' but the score is {score}")
     return problems
+
+
+SCORELINE = re.compile(r"\b(\d+)\s?[-–]\s?(\d+)\b(?!\s?(min|'|th|st|nd|rd))")
+CLUB = re.compile(rf"\b({'|'.join([*CLUB_CODES, *CLUB_CODES.values()])})\b")
+
+
+def scorelines(goals: list[str], teams: list[str]) -> set[tuple[str, int, int]]:
+    """Every score this match has been at, as (club, its goals, the other's goals)."""
+    a, b = teams
+    score = {a: 0, b: 0}
+    seen = set()
+    for team in [None, *goals]:
+        if team:
+            score[team] += 1
+        seen |= {(a, score[a], score[b]), (b, score[b], score[a])}
+    return seen
+
+
+def check_scorelines(text: str, goals: list[str], teams: list[str]) -> list[str]:
+    """A scoreline about one of this match's clubs must be a score the match has actually been at.
+
+    Each scoreline belongs to the nearest club named before it in the same sentence (or just after
+    it, as in "a 2-0 win for Riverside"); scorelines about other matches are left alone.
+    """
+    seen = scorelines(goals, teams)
+    problems = []
+    for m in SCORELINE.finditer(text):
+        before = re.split(r"[.;!?]", text[max(0, m.start() - 60) : m.start()])[-1]
+        named = CLUB.findall(before)
+        if not named:
+            named = CLUB.findall(re.split(r"[.;!?,]", text[m.end() : m.end() + 30])[0])[:1]
+        if not named:
+            continue
+        code = CLUB_CODES.get(named[-1], named[-1])
+        if code not in teams:
+            continue
+        x, y = int(m.group(1)), int(m.group(2))
+        if (code, x, y) not in seen and (code, y, x) not in seen:
+            problems.append(f"'{m.group(0)}' is not a score this match has been at")
+    return problems
+
+
+SENT_OFF = re.compile(
+    r"\b(sent off|sending[- ]off|red card(ed)?|sees red|saw red|seen red|dismissed|down to (ten|10) men)\b",
+    re.IGNORECASE,
+)
+DENIED = re.compile(
+    r"\b(no|not|never|nobody|no one|n't|without|yet to|isn't|wasn't|hasn't|hadn't)\b[^.]{0,30}$",
+    re.IGNORECASE,
+)
+
+
+def check_cards(text: str, cards: list[dict]) -> list[str]:
+    """Saying someone was sent off needs a red card in the match events."""
+    if any(c.get("card") == "red" for c in cards):
+        return []
+    for m in SENT_OFF.finditer(text):
+        before = text[max(0, m.start() - 40) : m.start()].replace("n't", " n't")
+        if not DENIED.search(before):
+            return [f"'{m.group(0)}' but nobody has been sent off"]
+    return []

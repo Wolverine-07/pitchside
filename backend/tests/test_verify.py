@@ -130,3 +130,82 @@ def test_who_leads_must_match_the_score():
     assert check_leader("Riverside lead 1-0 and Kingsport are chasing the game", score) == []
     assert check_leader("Kingsport lead in possession", score) == []  # not about the score
     assert check_leader("Coldharbour lead at Brightwater", score) == []  # another match
+
+
+def test_a_club_that_has_not_scored_still_counts_for_who_leads():
+    from collections import Counter
+
+    from pitchside.agents.verify import check_leader
+    from tests.test_api import live_state
+
+    st = live_state(60)  # 0-1: the Counter has no entry for Kingsport at all
+    assert "KSC" not in st.score
+    assert check_leader("Kingsport are ahead", {t: st.score[t] for t in st.teams})
+    assert (
+        check_leader("Kingsport are ahead", dict(Counter({"RVA": 1}))) == []
+    )  # why callers pass both
+
+
+def test_scorelines_must_be_scores_the_match_has_been_at():
+    from pitchside.agents.verify import check_scorelines
+
+    goals, teams = ["RVA", "KSC", "KSC"], ["KSC", "RVA"]  # 0-0, 0-1, 1-1, 2-1
+    ok = [
+        "Kingsport lead 2-1 after the comeback.",
+        "Riverside trail 1-2 now.",
+        "Riverside went 1-0 up early on.",
+        "Kingsport 1-1 Riverside at one stage.",
+        "Ashvale lead Dunmore 3-0 elsewhere.",  # another match: not this one's to check
+        "It finished 4-4 in the other game.",  # no club of this match named
+    ]
+    ok += [
+        "Kingsport were behind, and Ashvale won 3-0 at Dunmore.",  # nearest club is in another match
+        "A 1-0 win for Riverside would have been the story.",
+        "Kingsport pressed hardest in the 60-70th minute spell.",  # not a score
+    ]
+    bad = [
+        "Riverside lead 3-0.",
+        "Kingsport are 2-0 up.",
+        "KSC 0-2 RVA",
+        "Kingsport scored 4 goals while you were away and lead 4-1.",
+        "It ended in a 3-1 win for Kingsport.",
+    ]
+    for text in ok:
+        assert check_scorelines(text, goals, teams) == [], text
+    for text in bad:
+        assert check_scorelines(text, goals, teams), text
+
+
+def test_nobody_is_sent_off_without_a_red_card():
+    from pitchside.agents.verify import check_cards
+
+    yellow = [{"player": "Ari Wexavi", "card": "yellow"}]
+    for text in [
+        "Pellello was sent off just before the break.",
+        "Riverside are down to ten men.",
+        "Wexavi saw red for that challenge.",
+    ]:
+        assert check_cards(text, yellow), text
+    for text in [
+        "Pellello hasn't been sent off; he's still on the pitch.",
+        "There has been no red card in this match.",
+        "Nobody has been sent off, but Wexavi is on a yellow.",
+        "Wexavi was booked, not sent off.",
+    ]:
+        assert check_cards(text, yellow) == [], text
+    assert check_cards("Wexavi was sent off.", [{"player": "Ari Wexavi", "card": "red"}]) == []
+
+
+def test_real_world_and_language_checks():
+    from pitchside.agents.verify import check_language, check_real_world
+
+    for text in ["They play like Arsenal.", "A Premier League side would", "Man United did that"]:
+        assert check_real_world(text), text
+    assert check_real_world("Kingsport City and Riverside Athletic in The Coastal League") == []
+    assert check_language("रिवरसाइड आगे है", "hi") == []
+    assert check_language("Riverside lead", "hi")
+    assert check_language("ريفرسايد في المقدمة", "ar") == []
+    assert check_language("リバーサイドがリード", "ja") == []
+    assert (
+        check_language("Riverside mène 1-0", "fr") == []
+    )  # Latin-script languages aren't script-checked

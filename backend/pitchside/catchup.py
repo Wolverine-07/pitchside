@@ -18,10 +18,13 @@ from pitchside.agents.critic import check_reasons
 from pitchside.agents.pipeline import ask
 from pitchside.agents.templates import template_line
 from pitchside.agents.verify import (
+    check_cards,
     check_language,
     check_leader,
     check_names,
     check_numbers,
+    check_real_world,
+    check_scorelines,
     check_style,
 )
 from pitchside.stats.state import MatchState
@@ -108,7 +111,12 @@ async def catch_up(
             + check_names(text, {"players": [m.player for m in missed]}, state.names)
             + check_style(text, live=False)
             + check_language(text, lang)
-            + check_leader(text, dict(state.score))
+            + check_leader(text, {t: state.score[t] for t in state.teams})
+            + check_scorelines(
+                text, [e["team"] for e in state.events if e["type"] == "goal"], state.teams
+            )
+            + check_cards(text, [e for e in state.events if e["type"] == "card"])
+            + check_real_world(text)
         )
         if lang == "en":
             problems += check_reasons(text, sheet, clubs, minute=state.minute)
