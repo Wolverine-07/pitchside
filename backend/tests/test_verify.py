@@ -119,3 +119,14 @@ def test_only_the_club_in_first_leads_the_table():
     assert check_table("Kingsport City lead the table in second.", second)
     assert not check_table("Kingsport City lead the table.", first)
     assert not check_table("Kingsport sit second in the table.", second)
+
+
+def test_who_leads_must_match_the_score():
+    from pitchside.agents.verify import check_leader
+
+    score = {"KSC": 0, "RVA": 1}
+    assert check_leader("Kingsport are ahead thanks to Pellello's early goal", score)
+    assert check_leader("Riverside trail at the hour", score)
+    assert check_leader("Riverside lead 1-0 and Kingsport are chasing the game", score) == []
+    assert check_leader("Kingsport lead in possession", score) == []  # not about the score
+    assert check_leader("Coldharbour lead at Brightwater", score) == []  # another match

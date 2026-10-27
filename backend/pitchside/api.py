@@ -10,7 +10,6 @@ GET  /api/health    provider and version
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import os
 import uuid
@@ -102,26 +101,13 @@ async def ask_pitchside(body: dict) -> dict:
             "verified": False,
             "steps": [],
         }
-    question = str(body.get("question", ""))[:300]
-    # Content Safety and the Pundit start together; a blocked question cancels the answer unseen.
-    answering = asyncio.create_task(
-        pundit.answer(
-            state, client, question, body.get("lang", "en"), body.get("profile", "casual")
-        )
+    return await pundit.screened_answer(
+        state,
+        client,
+        str(body.get("question", ""))[:300],
+        body.get("lang", "en"),
+        body.get("profile", "casual"),
     )
-    screened = await safety.screen(question)
-    if not screened["ok"]:
-        answering.cancel()
-        return {
-            "answer": "I'll stick to the football. Ask me about the match, a player or the table.",
-            "verified": False,
-            "blocked": True,
-            "steps": [screened["step"]],
-        }
-    result = await answering
-    if screened["step"]:
-        result["steps"] = [screened["step"], *result["steps"]]
-    return result
 
 
 @app.post("/api/catchup")

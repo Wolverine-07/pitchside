@@ -17,6 +17,11 @@ def test_plain_hijack_attempts_are_blocked_even_without_the_service():
     assert asyncio.run(safety.screen("Was that a brutal tackle?"))["ok"]
 
 
+def test_distress_gets_a_kind_reply_without_the_service():
+    r = asyncio.run(safety.screen("This result makes me want to hurt myself."))
+    assert not r["ok"] and r["category"] == "SelfHarm"
+
+
 def test_blocked_questions_never_reach_the_pundit(monkeypatch):
     LIVE["safety"] = live_state(10)
 
@@ -26,7 +31,7 @@ def test_blocked_questions_never_reach_the_pundit(monkeypatch):
     async def pundit_called(*a, **k):
         raise AssertionError("the Pundit saw a blocked question")
 
-    monkeypatch.setattr(api.safety, "screen", blocked)
+    monkeypatch.setattr(safety, "screen", blocked)
     monkeypatch.setattr(api, "clients", lambda: {"fast": object()})
     monkeypatch.setattr(api.pundit, "answer", pundit_called)
     r = (

@@ -303,6 +303,7 @@ def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) ->
         + check_style(text, live)
         + check_context(text, minute, _minutes_in(facts))
         + check_table(text, facts)
+        + check_leader(text, facts.get("score") if isinstance(facts.get("score"), dict) else None)
     )
     return Check(not problems, problems)
 
@@ -320,3 +321,53 @@ def check_language(text: str, lang: str) -> list[str]:
     if script and len(script.findall(text)) < len(text) / 4:
         return [f"not written in the {lang} script"]
     return []
+
+
+REAL_WORLD = re.compile(
+    r"\b(Premier League|Champions League|Manchester|Arsenal|Chelsea|Liverpool|Tottenham|Everton|"
+    r"Newcastle|Aston Villa|West Ham|Brighton|Wolves|Fulham|Brentford|Crystal Palace|Nottingham|"
+    r"Bournemouth|Leicester|Leeds|Burnley|Sunderland)\b",
+    re.IGNORECASE,
+)
+
+
+def check_real_world(text: str) -> list[str]:
+    """Pitchside is a fictional league: real clubs and competitions never appear in what it says."""
+    m = REAL_WORLD.search(text)
+    return [f"names a real club or competition ('{m.group(0)}')"] if m else []
+
+
+CLUB_CODES = {
+    "Kingsport": "KSC",
+    "Riverside": "RVA",
+    "Ashvale": "AVU",
+    "Brightwater": "BWF",
+    "Coldharbour": "CHT",
+    "Dunmore": "DMA",
+    "Eastmere": "EMW",
+    "Fairhaven": "FHF",
+}
+LEADER = re.compile(
+    rf"\b({'|'.join([*CLUB_CODES, *CLUB_CODES.values()])})"
+    r"( City| Athletic| United| FC| Town| Albion| Wanderers| Forest)?"
+    r" (are |is |have |go |went |now )?(ahead|in front|leads?|leading|trail|trailing|behind|chasing)\b",
+)
+NOT_THE_SCORE = re.compile(r" (the|in|on|for|with) ")  # "lead the table", "lead in possession"
+
+
+def check_leader(text: str, score: dict[str, int] | None) -> list[str]:
+    """'Kingsport are ahead' must match the score. Clubs in other matches are left alone."""
+    if not score:
+        return []
+    problems = []
+    for m in LEADER.finditer(text):
+        code = CLUB_CODES.get(m.group(1), m.group(1))
+        if code not in score:
+            continue
+        other = max((v for k, v in score.items() if k != code), default=0)
+        ahead = m.group(4) in ("ahead", "in front", "lead", "leads", "leading")
+        if m.group(4).startswith("lead") and NOT_THE_SCORE.match(text, m.end()):
+            continue
+        if (ahead and score[code] <= other) or (not ahead and score[code] >= other):
+            problems.append(f"'{m.group(0)}' but the score is {score}")
+    return problems
