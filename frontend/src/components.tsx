@@ -1881,7 +1881,7 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
     ["Ingest", "A simulator streams every pass, tackle, shot and sprint, with positions and speeds. Three other games of the matchday run alongside."],
     ["Interpret", "A deterministic stats engine computes possession, pass difficulty, xG, pressing, momentum, control vs chaos, win probability and the live table, and flags the moments that matter."],
     ["Explain", "The Analyst agent works out why the moment matters, pulling numbers from the stats engine over MCP. Every number it cites is matched to the engine, and the Critic tests every reason it gives."],
-    ["Show", "Each caption becomes a timed overlay (JSON schema in the repo) that any graphics system could draw. This page is one renderer."],
+    ["Show", "Each caption becomes a timed overlay (JSON schema in the repo) that any graphics system could draw. This page is one renderer; /overlay is a clean feed for OBS or a vision mixer."],
     ["Personalize", "The Persona agent rewrites each caption for a casual fan, an analyst, a club supporter, a player follower and a metric follower; the Linguist translates into up to three languages."],
   ];
   const agents = [

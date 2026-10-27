@@ -22,14 +22,15 @@ One pipeline, five stages, as the challenge asks:
 1. **Ingest.** A match simulator streams synthetic events (passes, carries, dribbles, shots, tackles, interceptions, pressure, fouls, cards, substitutions, sprints, possession changes) as they happen. Three other fixtures of the same matchday play alongside it.
 2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo, a control vs chaos index and a live win probability. It flags candidate moments with a significance score and the evidence behind each one.
 3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools, including the live league table.
-4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer.
+4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer; `/overlay` is another: a clean 1920x1080 feed (score bug, lower thirds, goal banner) on a transparent or green background, ready to add to OBS or a vision mixer as a browser source (`/overlay?speed=3&lang=hi&mode=analyst&key=green`).
 5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club, a chosen player and a viewer who follows one stat (possession, chance quality, shots, pressing or win probability). Each viewer picks up to three languages besides English (Hindi, Spanish, French, Portuguese, Arabic, German, Japanese); captions, voice and Ask answers come in that language (Arabic right to left) while the interface stays in English, and Azure AI Speech reads captions aloud in a native neural voice.
 
 What a viewer gets on top of that:
 
 - **The Coastal League.** Eight fictional clubs. The featured match is one of four on matchday 10; a live table moves with every goal, and goals elsewhere that matter to the two clubs on the pitch come through as "around the league" moments.
 - **Half-time and full-time recaps**, written by the same agents from stats-engine facts, for every viewer and language.
-- **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown.
+- **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown. Azure AI Content Safety (Prompt Shields and harm categories) screens every question first, since anyone can type into it.
+- **Catch me up.** Step away and come back, and Pitchside offers to tell you what you missed, in your language and from your side, read aloud if voice is on. The summary is checked like a caption, with a verified template behind it.
 - **Watch any of the four matchday fixtures.** Every club has its own squad, colours, playing style and home ground; the rest of the league plays around whichever match you pick.
 - **Studio mode.** For broadcasters: no caption airs until a producer approves it, and a producer's own edits are checked by the Verifier against the live match before they go out.
 - **Why trust this?** Every caption in the feed opens to show the Analyst's reasoning, the numbers it rests on (as the stats engine reported them) and its path through the agents: what the Verifier sent back and why, how many audience versions were rewritten, and how each language was produced.
@@ -46,7 +47,10 @@ flowchart LR
         D[Director] --> A[Analyst] --> N[Narrator] --> V{Verifier}
         V -- reject, with reasons --> N
         V -- failed twice --> T[Template line]
-        V -- pass --> P[Persona]
+        V -- pass --> C{Critic}
+        C -- reason not in the data --> N
+        C -- failed twice --> T
+        C -- pass --> P[Persona]
         T --> P --> L[Linguist]
     end
     A <-. MCP tools .-> stats
@@ -60,6 +64,8 @@ flowchart LR
 - a named player must be part of the moment;
 - no end-of-match talk before the 80th minute, British plural verbs for clubs ("Kingsport press"), no chatbot phrases.
 
+**The Critic checks the reasons.** A caption can get every number right and still claim "Riverside press high" when they haven't won the ball in Kingsport's half for five minutes. The Critic, also plain code, finds each reason a line gives (pressing, control, losing control, chaos, calm, sitting deep, tiredness, sharp or sloppy passing, creating more, against the run of play), works out which club it is about, and tests it against the stats engine over recent windows. It reads the Analyst's explanation before the Narrator writes, every draft caption, every audience rewrite and every Ask answer.
+
 A rejected caption goes back to the Narrator with the reasons. If it fails twice, a template line built only from verified numbers airs instead, so the broadcast never waits.
 
 | Agent | Job | Falls back to |
@@ -68,6 +74,7 @@ A rejected caption goes back to the Narrator with the reasons. If it fails twice
 | Analyst | Explains why the moment matters, citing numbers fetched over MCP (stats and league table) | The moment's own summary |
 | Narrator | Writes a headline and a live line in commentator style, and the half-time and full-time recaps | Template line |
 | Verifier | Checks numbers, names, timing and style; sends drafts back | (plain code, cannot fail) |
+| Critic | Checks every reason a caption gives against the stats engine; sends drafts back | (plain code, cannot fail) |
 | Persona | Rewrites for casual, analyst, club, player and metric viewers; one retry with the Verifier's reasons | The verified base line |
 | Pundit | Answers viewers' questions from live data (Ask Pitchside) | An honest "I can't confirm that" |
 | Linguist | Localizes into each viewer's languages, one parallel call per language; every translation is re-checked for numbers and names, with one retry | Azure AI Translator (football glossary, names protected), then English |
