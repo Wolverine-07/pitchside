@@ -81,7 +81,8 @@ CORRECTS = {
     "odds": re.compile(NO_DATA, re.IGNORECASE),
     "80%": re.compile(r"\b(no|not|actually)\b", re.IGNORECASE),
     "send off": re.compile(
-        r"\b(wasn't|was not|hasn't|has not|not been|no red card|isn't|did not|didn't)\b", re.IGNORECASE
+        r"\b(wasn't|was not|hasn't|has not|not been|no red card|isn't|did not|didn't)\b",
+        re.IGNORECASE,
     ),
     "manager": re.compile(NO_DATA, re.IGNORECASE),
 }
