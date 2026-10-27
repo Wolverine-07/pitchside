@@ -8,6 +8,7 @@ export type Settings = {
   speed: number;
   club: string;
   player: string;
+  metric: string;
   langs: string[];
 };
 
@@ -38,6 +39,7 @@ export type MatchView = {
   recent: BallPoint[];
   replays: Replay[];
   carrier: string | null;
+  lastAction: MatchEvent | null;
 };
 
 const EMPTY: MatchView = {
@@ -64,6 +66,7 @@ const EMPTY: MatchView = {
   recent: [],
   replays: [],
   carrier: null,
+  lastAction: null,
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -78,7 +81,7 @@ function toPitch(meta: Meta | null, team: string | undefined, x: number, y: numb
 }
 
 export function profilesFor(s: Settings) {
-  return ["casual", "analyst", `club:${s.club}`, `player:${s.player}`];
+  return ["casual", "analyst", `club:${s.club}`, `player:${s.player}`, `metric:${s.metric}`];
 }
 
 export function useMatch() {
@@ -154,6 +157,8 @@ function reduce(v: MatchView, item: any): MatchView {
       } else if (e.type === "possession_change" || e.type === "interception" || (e.type === "tackle" && e.outcome === "won")) {
         next.carrier = e.player ?? next.carrier;
       }
+      // The analyst view's "last action" strip: pass length, difficulty and ball speed, or the shot.
+      if (["pass", "carry", "shot", "clearance"].includes(e.type)) next.lastAction = e;
       if (e.type === "shot" && e.x !== undefined) {
         const p = toPitch(v.meta, e.team, e.x, e.y!);
         next.shots = [...v.shots, { ...p, team: e.team!, outcome: e.outcome!, xg: (e as any).xg, minute: e.minute, player: e.player! }];

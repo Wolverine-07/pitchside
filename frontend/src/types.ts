@@ -29,7 +29,7 @@ export type Snapshot = {
   win_probability_pct?: Record<string, number>;
   teams?: Record<
     string,
-    { shots: number; on_target: number; pass_accuracy_pct: number; corners: number; fouls: number; tackles_won: number; yellow_cards: number; red_cards: number }
+    { shots: number; on_target: number; pass_accuracy_pct: number; corners: number; fouls: number; tackles_won: number; high_regains?: number; yellow_cards: number; red_cards: number }
   >;
 };
 
@@ -108,5 +108,5 @@ export type PlayerStats = {
 export type Shot = { x: number; y: number; team: string; outcome: string; xg: number; minute: number; player: string };
 export type Goal = { team: string; player: string; minute: number; added?: number };
 
-export type Mode = "casual" | "analyst" | "club" | "player";
-export type Lang = "en" | "hi" | "es";
+export type Mode = "casual" | "analyst" | "club" | "player" | "metric";
+export type Lang = string;

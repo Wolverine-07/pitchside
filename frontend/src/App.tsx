@@ -13,9 +13,13 @@ import {
   isRecap,
   RecapCard,
   LeagueTable,
+  LastAction,
   LowerThird,
   MatchStats,
+  METRICS,
+  MetricTracker,
   Momentum,
+  ProofModal,
   Pitch,
   PlayerCard,
   Scoreboard,
@@ -24,19 +28,17 @@ import {
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
 import { type Settings, useMatch } from "./useMatch";
+import { LANGUAGES, t } from "./i18n";
 import { setVoice as setVoiceOutput, speak, stop as stopVoice } from "./voice";
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: "casual", label: "Casual" },
-  { id: "analyst", label: "Analyst" },
-  { id: "club", label: "My club" },
-  { id: "player", label: "My player" },
+const modes = (lang: string): { id: Mode; label: string }[] => [
+  { id: "casual", label: t(lang, "casual") },
+  { id: "analyst", label: t(lang, "analyst") },
+  { id: "club", label: t(lang, "myClub") },
+  { id: "player", label: t(lang, "myPlayer") },
+  { id: "metric", label: t(lang, "myMetric") },
 ];
-const LANGS: { id: Lang; label: string }[] = [
-  { id: "en", label: "EN" },
-  { id: "hi", label: "हिं" },
-  { id: "es", label: "ES" },
-];
+const MAX_EXTRA_LANGS = 3; // each language is one more parallel Linguist call per moment
 
 function Segmented<T extends string>({ items, value, onChange, label }: { items: { id: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
   return (
@@ -83,6 +85,7 @@ export default function App() {
     speed: 3,
     club: "RVA",
     player: "KSC-09",
+    metric: "possession",
     langs: ["en", "hi", "es"],
   });
   const [mode, setMode] = useState<Mode>("casual");
@@ -90,6 +93,7 @@ export default function App() {
   const [voice, setVoice] = useState(false);
   const [tab, setTab] = useState<"producer" | "commentary" | "ask" | "agents" | "league">("commentary");
   const [studio, setStudio] = useState(false);
+  const [proof, setProof] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
 
   useEffect(() => {
@@ -115,7 +119,15 @@ export default function App() {
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     if (q.get("mode")) setMode(q.get("mode") as Mode);
-    if (q.get("lang")) setLang(q.get("lang") as Lang);
+    let langs = settings.langs;
+    const ql = q.get("lang");
+    if (ql && LANGUAGES.some((l) => l.id === ql)) {
+      setLang(ql);
+      if (!langs.includes(ql)) {
+        langs = ["en", ql, ...langs.filter((l) => l !== "en" && l !== ql)].slice(0, 1 + MAX_EXTRA_LANGS);
+        setSettings((x) => ({ ...x, langs }));
+      }
+    }
     if (q.get("tab") === "agents" || q.get("tab") === "league") setTab(q.get("tab") as "agents" | "league");
     const fixture = q.get("fixture");
     if (fixture && fixture !== settings.fixture) {
@@ -123,19 +135,19 @@ export default function App() {
       return; // meta reloads for that fixture, then this runs again
     }
     if (q.has("kickoff") && meta && view.status === "idle") {
-      start({ ...settings, speed: Number(q.get("speed") ?? settings.speed) });
+      start({ ...settings, langs, speed: Number(q.get("speed") ?? settings.speed) });
     }
   }, [meta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const m = view.meta ?? meta;
-  const profile = mode === "club" ? `club:${settings.club}` : mode === "player" ? `player:${settings.player}` : mode;
+  const profile =
+    mode === "club" ? `club:${settings.club}` : mode === "player" ? `player:${settings.player}` : mode === "metric" ? `metric:${settings.metric}` : mode;
   const key = `${profile}:${lang}`;
   const myCards = useMemo(() => {
     const mine = view.cards.filter((c) => c.profile_key === key);
-    if (lang !== "en") return mine;
-    // Fast-path captions fill the gap until the agents' caption for the same moment lands.
+    // Fast-path captions (already in this language) fill the gap until the agents' caption lands.
     const done = new Set(mine.map((c) => c.moment_id));
-    const flashes = view.cards.filter((c) => c.profile_key === "flash:en" && !done.has(c.moment_id));
+    const flashes = view.cards.filter((c) => c.profile_key === `flash:${lang}` && !done.has(c.moment_id));
     return [...mine, ...flashes].sort((a, b) => a.anchor_t_ms - b.anchor_t_ms || (a.provenance.fallback ? -1 : 1));
   }, [view.cards, key, lang]);
   // In studio mode only approved captions air, with the producer's edits applied.
@@ -149,6 +161,10 @@ export default function App() {
     : myCards;
   const latest = airable.filter((c) => !isRecap(c)).at(-1);
   const awaiting = myCards.filter((c) => !decisions[c.overlay_id]).length;
+  // Languages are chosen per match; fall back to English if the current one was dropped.
+  useEffect(() => {
+    if (!settings.langs.includes(lang)) setLang("en");
+  }, [settings.langs]); // eslint-disable-line react-hooks/exhaustive-deps
   // A new language means new voices: stop the old one mid-sentence.
   useEffect(() => stopVoice(), [lang]);
   // Voice takes effect at once: on reads the caption on screen now, off stops speaking.
@@ -187,8 +203,13 @@ export default function App() {
         )}
         {started && (
           <div className="ml-auto flex items-center gap-4">
-            <Segmented label="View" items={MODES} value={mode} onChange={setMode} />
-            <Segmented label="Language" items={LANGS} value={lang} onChange={setLang} />
+            <Segmented label={t(lang, "view")} items={modes(lang)} value={mode} onChange={setMode} />
+            <Segmented
+              label={t(lang, "language")}
+              items={LANGUAGES.filter((l) => settings.langs.includes(l.id)).map((l) => ({ id: l.id as Lang, label: l.short }))}
+              value={lang}
+              onChange={setLang}
+            />
             <button
               onClick={() => {
                 setStudio((s) => !s);
@@ -197,7 +218,7 @@ export default function App() {
               className={`rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${studio ? "border-warn bg-warn/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
               title="Studio mode: approve or edit every caption before it airs"
             >
-              Studio
+              {t(lang, "studio")}
             </button>
             <button
               onClick={() => setVoice((v) => !v)}
@@ -208,7 +229,7 @@ export default function App() {
                 <path d="M4 8h3l4-3v10l-4-3H4z" />
                 {voice && <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5.5a6.5 6.5 0 0 1 0 9" />}
               </svg>
-              Voice
+              {t(lang, "voice")}
             </button>
             <button
               onClick={() => {
@@ -221,13 +242,13 @@ export default function App() {
               className="rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:border-bad hover:text-white"
               title="Leave this match and pick another"
             >
-              Leave
+              {t(lang, "leave")}
             </button>
             <div className="flex items-center gap-2 border-l border-line pl-4 text-[12px]">
               {view.status === "live" ? (
                 <span className="flex items-center gap-1.5 font-semibold text-bad">
                   <i className="live-dot h-2 w-2 rounded-full bg-bad" />
-                  LIVE
+                  {t(lang, "live")}
                 </span>
               ) : (
                 <span className="capitalize text-muted">{view.status}</span>
@@ -235,7 +256,15 @@ export default function App() {
             </div>
           </div>
         )}
+        <button
+          onClick={() => setProof(true)}
+          className={`${started ? "" : "ml-auto "}rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:text-white`}
+          title="How the agents work and what was measured"
+        >
+          {t(lang, "howItWorks")}
+        </button>
       </header>
+      {proof && <ProofModal onClose={() => setProof(false)} />}
 
       {started && <ScoresTicker league={view.league} />}
 
@@ -259,17 +288,19 @@ export default function App() {
               >
                 <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
                 {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
+                {mode === "metric" && <MetricTracker metric={settings.metric} snapshot={view.snapshot} meta={m} />}
+                {mode === "analyst" && !replay && <LastAction e={view.lastAction} meta={m} />}
                 <GoalBanner goal={view.lastGoal} meta={m} />
                 {view.status !== "done" && <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />}
                 {view.status === "done" && m && (
-                  <FullTime meta={m} snapshot={view.snapshot} league={view.league} recap={latestRecap} onLeave={leave} />
+                  <FullTime meta={m} snapshot={view.snapshot} league={view.league} recap={latestRecap} onLeave={leave} lang={lang} />
                 )}
               </Pitch>
             </div>
             <div className="grid h-[200px] shrink-0 grid-cols-[minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,1.2fr)] gap-3">
-              <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} />
-              <MatchStats snapshot={view.snapshot} meta={m} />
-              <LiveEvents feed={view.feed} meta={m} />
+              <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} lang={lang} />
+              <MatchStats snapshot={view.snapshot} meta={m} lang={lang} />
+              <LiveEvents feed={view.feed} meta={m} lang={lang} />
             </div>
           </section>
 
@@ -277,11 +308,11 @@ export default function App() {
             <div className="flex shrink-0 gap-1 border-b border-line p-1.5">
               {(
                 [
-                  ...(studio ? ([["producer", "Producer", awaiting]] as const) : []),
-                  ["commentary", "Commentary", myCards.length],
-                  ["ask", "Ask", null],
-                  ["agents", "Agents", view.traces.length],
-                  ["league", "League", view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
+                  ...(studio ? ([["producer", t(lang, "producer"), awaiting]] as const) : []),
+                  ["commentary", t(lang, "commentary"), myCards.length],
+                  ["ask", t(lang, "ask"), null],
+                  ["agents", t(lang, "agents"), view.traces.length],
+                  ["league", t(lang, "league"), view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
                 ] as const
               ).map(([id, label, n]) => (
                 <button
@@ -297,7 +328,7 @@ export default function App() {
             {view.pending.length > 0 && (
               <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2 text-[12px] text-soft">
                 <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                Agents writing: {view.pending.slice(-2).map((p) => `${momentLabel(p.type)} ${p.minute}'`).join(", ")}
+                {t(lang, "agentsWriting")}: {view.pending.slice(-2).map((p) => `${momentLabel(p.type, lang)} ${p.minute}'`).join(", ")}
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -325,7 +356,7 @@ export default function App() {
                       ))}
                     </div>
                   )}
-                  <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} />
+                  <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} traces={view.traces} lang={lang} />
                 </>
               ) : tab === "ask" ? (
                 <AskPanel
@@ -367,6 +398,11 @@ function askSuggestions(m: Meta | null, s: Settings, chaos: number | undefined, 
     ],
     hi: [`${player} कैसा खेल रहे हैं?`, "अभी मैच में क्या हो रहा है?", `तालिका में ${club} की स्थिति क्या है?`],
     es: [`¿Cómo está jugando ${player}?`, "¿Por qué el partido va así?", `¿Qué significa este resultado para ${club} en la tabla?`],
+    fr: [`Comment joue ${player} ?`, "Pourquoi le match tourne-t-il ainsi ?", `Que change ce score pour ${club} au classement ?`],
+    pt: [`Como está a jogar o ${player}?`, "Porque é que o jogo está assim?", `O que muda este resultado para o ${club} na tabela?`],
+    ar: [`كيف يلعب ${player}؟`, "لماذا تسير المباراة هكذا؟", `ماذا تعني هذه النتيجة لـ ${club} في الترتيب؟`],
+    de: [`Wie spielt ${player}?`, "Warum läuft das Spiel so?", `Was bedeutet das Ergebnis für ${club} in der Tabelle?`],
+    ja: [`${player}の出来は？`, "なぜこういう試合展開なの？", `この結果で${club}の順位はどうなる？`],
   };
   return byLang[lang] ?? byLang.en;
 }
@@ -456,6 +492,15 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
                 </optgroup>
               </select>
             </Field>
+            <Field label="Stat to follow (My metric view)">
+              <select className={selectClass} value={settings.metric} onChange={(e) => setSettings({ ...settings, metric: e.target.value })}>
+                {METRICS.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Speed">
               <select className={selectClass} value={settings.speed} onChange={(e) => setSettings({ ...settings, speed: Number(e.target.value) })}>
                 {[1, 3, 5, 10].map((s) => (
@@ -465,6 +510,29 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
                 ))}
               </select>
             </Field>
+          </div>
+          <div className="mt-4">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+              Commentary languages <span className="normal-case tracking-normal text-soft">(English plus up to {MAX_EXTRA_LANGS})</span>
+            </span>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {LANGUAGES.map((l) => {
+                const on = settings.langs.includes(l.id);
+                const full = !on && settings.langs.length >= 1 + MAX_EXTRA_LANGS;
+                return (
+                  <button
+                    key={l.id}
+                    disabled={l.id === "en" || full}
+                    onClick={() =>
+                      setSettings({ ...settings, langs: on ? settings.langs.filter((x) => x !== l.id) : [...settings.langs, l.id] })
+                    }
+                    className={`rounded-full border px-3 py-1 text-[13px] transition-colors ${on ? "border-accent bg-accent/15 text-white" : "border-line text-soft hover:text-white"} disabled:cursor-not-allowed ${full ? "opacity-40" : ""}`}
+                  >
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <button
             onClick={onStart}

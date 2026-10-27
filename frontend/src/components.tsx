@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
+import type { Evidence, Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 import { pitchPos, type BallPoint, type Replay } from "./useMatch";
+import { dirOf, momentIn, t } from "./i18n";
 import { speak } from "./voice";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
@@ -19,14 +20,16 @@ const MOMENT_LABEL: Record<string, string> = {
   card: "Booking",
   milestone: "Milestone",
   player_speed: "Top speed",
+  player_spotlight: "Player spotlight",
+  great_save: "Great save",
   around_the_league: "Around the league",
   half_time_recap: "Half-time recap",
   full_time_recap: "Full-time recap",
 };
 export const isRecap = (o?: Overlay) =>
   !!o && String(o.content.moment_type).endsWith("_recap");
-export const momentLabel = (t: string) =>
-  MOMENT_LABEL[t] ?? t.replace("_", " ");
+export const momentLabel = (type: string, lang = "en") =>
+  momentIn(lang, type, MOMENT_LABEL[type] ?? type.replaceAll("_", " "));
 
 /* ---------- scoreboard ---------- */
 
@@ -422,7 +425,7 @@ export function LowerThird({
         <div className="w-1 shrink-0" style={{ background: color }} />
         <div className="min-w-0 px-3.5 py-2.5">
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
-            <span style={{ color }}>{momentLabel(c.moment_type)}</span>
+            <span style={{ color }}>{momentLabel(c.moment_type, lang)}</span>
             <span className="text-muted">·</span>
             <span className="flex items-center gap-1 text-good">
               <svg
@@ -434,13 +437,13 @@ export function LowerThird({
               >
                 <path d="M2 6.5 5 9l5-6" />
               </svg>
-              Verified
+              {t(lang, "verified")}
             </span>
           </div>
-          <div className="mt-0.5 truncate text-[15px] font-semibold leading-snug">
+          <div dir={dirOf(c.lang)} className="mt-0.5 truncate text-[15px] font-semibold leading-snug">
             {c.headline}
           </div>
-          <div className="line-clamp-2 text-[13px] leading-snug text-soft">
+          <div dir={dirOf(c.lang)} className="line-clamp-2 text-[13px] leading-snug text-soft">
             {c.body}
           </div>
         </div>
@@ -480,11 +483,13 @@ export function Momentum({
   meta,
   goals = [],
   chaos,
+  lang = "en",
 }: {
   data: { t: number; v: number }[];
   meta: Meta | null;
   goals?: Goal[];
   chaos?: number;
+  lang?: string;
 }) {
   const w = 600,
     h = 64;
@@ -503,7 +508,7 @@ export function Momentum({
   const away = clubColor(meta, meta?.away.code);
   return (
     <Panel
-      title="Momentum"
+      title={t(lang, "momentum")}
       right={
         <span className="flex gap-3 normal-case tracking-normal">
           <span className="flex items-center gap-1.5">
@@ -578,13 +583,13 @@ export function Momentum({
       </div>
       {chaos !== undefined && (
         <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted">
-          <span>Control</span>
+          <span>{t(lang, "control")}</span>
           <div className="relative h-1 flex-1 rounded-full bg-gradient-to-r from-good via-warn to-bad">
             <div className="absolute -top-1 h-3 w-1 rounded bg-white shadow transition-all duration-700" style={{ left: `calc(${chaos * 100}% - 2px)` }} />
           </div>
-          <span>Chaos</span>
-          <span className={`w-20 text-right font-semibold ${chaos >= 0.65 ? "text-bad" : chaos <= 0.4 ? "text-good" : "text-warn"}`}>
-            {chaos >= 0.65 ? "Chaotic" : chaos <= 0.4 ? "Controlled" : "Contested"}
+          <span>{t(lang, "chaos")}</span>
+          <span className={`w-24 text-right font-semibold ${chaos >= 0.65 ? "text-bad" : chaos <= 0.4 ? "text-good" : "text-warn"}`}>
+            {t(lang, chaos >= 0.65 ? "chaotic" : chaos <= 0.4 ? "controlled" : "contested")}
           </span>
         </div>
       )}
@@ -594,26 +599,26 @@ export function Momentum({
 
 
 
-export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta: Meta | null }) {
+export function MatchStats({ snapshot, meta, lang = "en" }: { snapshot: Snapshot | null; meta: Meta | null; lang?: string }) {
   if (!snapshot || !meta)
     return (
-      <Panel title="Match stats">
-        <div className="text-sm text-muted">Waiting for kick-off</div>
+      <Panel title={t(lang, "matchStats")}>
+        <div className="text-sm text-muted">{t(lang, "waiting")}</div>
       </Panel>
     );
   const h = snapshot.teams?.[meta.home.code];
   const a = snapshot.teams?.[meta.away.code];
   const rows: [string, number, number, ((v: number) => string)?][] = [
-    ["Possession", snapshot.possession_pct[meta.home.code], snapshot.possession_pct[meta.away.code], (v) => `${v}%`],
-    ["Shots (on target)", h?.shots ?? 0, a?.shots ?? 0],
-    ["Expected goals", snapshot.xg[meta.home.code], snapshot.xg[meta.away.code], (v) => v.toFixed(2)],
-    ["Pass accuracy", h?.pass_accuracy_pct ?? 0, a?.pass_accuracy_pct ?? 0, (v) => `${v}%`],
-    ["Corners", h?.corners ?? 0, a?.corners ?? 0],
-    ["Fouls", h?.fouls ?? 0, a?.fouls ?? 0],
+    [t(lang, "possession"), snapshot.possession_pct[meta.home.code], snapshot.possession_pct[meta.away.code], (v) => `${v}%`],
+    [t(lang, "shots"), h?.shots ?? 0, a?.shots ?? 0],
+    [t(lang, "xg"), snapshot.xg[meta.home.code], snapshot.xg[meta.away.code], (v) => v.toFixed(2)],
+    [t(lang, "passAccuracy"), h?.pass_accuracy_pct ?? 0, a?.pass_accuracy_pct ?? 0, (v) => `${v}%`],
+    [t(lang, "corners"), h?.corners ?? 0, a?.corners ?? 0],
+    [t(lang, "fouls"), h?.fouls ?? 0, a?.fouls ?? 0],
   ];
   const onTarget = [h?.on_target ?? 0, a?.on_target ?? 0];
   return (
-    <Panel title="Match stats" right={snapshot.win_probability_pct && <WinChip p={snapshot.win_probability_pct} meta={meta} />}>
+    <Panel title={t(lang, "matchStats")} right={snapshot.win_probability_pct && <WinChip p={snapshot.win_probability_pct} meta={meta} />}>
       <div className="space-y-[5px]">
         {rows.map(([label, hv, av, fmt], i) => {
           const total = hv + av || 1;
@@ -689,10 +694,14 @@ export function CommentaryFeed({
   cards,
   meta,
   liveId,
+  traces = [],
+  lang = "en",
 }: {
   cards: Overlay[];
   meta: Meta | null;
   liveId?: string;
+  traces?: Trace[];
+  lang?: string;
 }) {
   if (!cards.length)
     return (
@@ -713,22 +722,103 @@ export function CommentaryFeed({
                 {minute}'
               </span>
               <span style={{ color }}>
-                {momentLabel(c.content.moment_type)}
+                {momentLabel(c.content.moment_type, lang)}
               </span>
               {c.provenance.fallback && (
-                <span className="text-warn">template</span>
+                <span className="text-warn">{(c.provenance as any).fast ? "instant" : "template"}</span>
               )}
             </div>
-            <div className="text-[14px] font-semibold leading-snug">
+            <div dir={dirOf(c.content.lang)} className="text-[14px] font-semibold leading-snug">
               {c.content.headline}
             </div>
-            <div className="mt-0.5 text-[13px] leading-snug text-soft">
+            <div dir={dirOf(c.content.lang)} className="mt-0.5 text-[13px] leading-snug text-soft">
               {c.content.body}
             </div>
+            <WhyTrust card={c} meta={meta} trace={traces.find((x) => x.moment_id === c.moment_id)} lang={lang} />
           </li>
         );
       })}
     </ol>
+  );
+}
+
+/** "Why trust this?": the facts behind one caption and every check it passed on the way to air. */
+function WhyTrust({ card, meta, trace, lang }: { card: Overlay; meta: Meta | null; trace?: Trace; lang: string }) {
+  const c = card.content;
+  const why = (c.why ?? {}) as { claim?: string; reason?: string; cited?: Evidence[] };
+  const facts = [...(why.cited ?? []), ...((c.evidence ?? []) as Evidence[])];
+  const seen = new Set<string>();
+  const rows = facts.filter((f) => {
+    const k = `${f.metric}|${f.team}|${f.player}|${f.value}`;
+    if (seen.has(k) || typeof f.value === "object") return false;
+    seen.add(k);
+    return true;
+  });
+  const who = (f: Evidence) =>
+    f.player ? f.player : f.team ? (f.team === meta?.home.code ? meta.home.name : f.team === meta?.away.code ? meta.away.name : f.team) : "";
+  const fast = (card.provenance as any).fast;
+  return (
+    <details className="group mt-2 text-[12px]">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-muted hover:text-soft">
+        <svg viewBox="0 0 12 12" className="h-3 w-3 transition-transform group-open:rotate-90" fill="currentColor">
+          <path d="M4 2.5 8 6l-4 3.5z" />
+        </svg>
+        {t(lang, "why")}
+      </summary>
+      <div className="mt-2 space-y-2 rounded-md border border-line bg-ink/60 p-2.5">
+        {why.claim && (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Analyst's read</div>
+            <div className="text-soft">
+              {why.claim}
+              {why.reason ? ` ${why.reason}` : ""}
+            </div>
+          </div>
+        )}
+        {rows.length > 0 && (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+              Numbers from the stats engine
+            </div>
+            <ul className="mt-0.5 space-y-0.5 font-mono text-[11px]">
+              {rows.slice(0, 8).map((f, i) => (
+                <li key={i} className="flex justify-between gap-2">
+                  <span className="truncate text-soft">
+                    {f.metric.replaceAll("_", " ")}
+                    {who(f) && <span className="text-muted"> · {who(f)}</span>}
+                    {f.window_s ? <span className="text-muted"> · last {Math.round(f.window_s / 60)} min</span> : null}
+                  </span>
+                  <span className="text-white">{String(f.value)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Path to air</div>
+          {fast ? (
+            <div className="text-soft">
+              Instant caption: a fixed template filled from the stats engine, so it can air the second the moment happens. The
+              agents' version replaces it in the feed when it is ready.
+            </div>
+          ) : trace ? (
+            <ol className="mt-0.5 space-y-0.5">
+              {trace.steps.map((s, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className={`w-16 shrink-0 capitalize ${STEP_TONE[s.status] ?? "text-soft"}`}>{s.agent}</span>
+                  <span className="truncate text-muted" title={s.note}>
+                    {s.status}
+                    {s.note ? ` · ${s.note}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="text-muted">Agent steps arrive with the translations.</div>
+          )}
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -1098,7 +1188,7 @@ export function RecapCard({
     <div className="rise absolute inset-0 grid place-items-center bg-black/55 backdrop-blur-[2px]">
       <div className="w-[min(620px,86%)] overflow-hidden rounded-xl bg-[rgba(7,11,20,.94)] shadow-2xl ring-1 ring-white/10">
         <div className="flex items-center justify-between border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
-          <span className="text-warn">{momentLabel(c.moment_type)}</span>
+          <span className="text-warn">{momentLabel(c.moment_type, lang)}</span>
           <span className="flex items-center gap-1 text-good">
             <svg
               viewBox="0 0 12 12"
@@ -1109,7 +1199,7 @@ export function RecapCard({
             >
               <path d="M2 6.5 5 9l5-6" />
             </svg>
-            Verified
+            {t(lang, "verified")}
           </span>
         </div>
         <div className="flex items-center justify-center gap-5 px-5 pt-5">
@@ -1121,7 +1211,7 @@ export function RecapCard({
           </span>
           <span className="text-[15px] font-semibold">{meta.away.name}</span>
         </div>
-        <div className="px-6 pt-4 pb-6 text-center">
+        <div dir={dirOf(c.lang)} className="px-6 pt-4 pb-6 text-center">
           <div className="text-lg font-semibold">{c.headline}</div>
           <p className="mt-2 text-[14px] leading-relaxed text-soft">{c.body}</p>
         </div>
@@ -1216,10 +1306,10 @@ export function AskPanel({
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
         {log.map((x, i) => (
           <div key={i} className="rise space-y-1.5">
-            <div className="ml-8 rounded-lg rounded-br-sm bg-accent/15 px-3 py-2 text-[13px]">
+            <div dir="auto" className="ml-8 rounded-lg rounded-br-sm bg-accent/15 px-3 py-2 text-[13px]">
               {x.q}
             </div>
-            <div className="mr-4 rounded-lg rounded-bl-sm border border-line bg-panel-2/60 px-3 py-2 text-[13px] leading-relaxed text-soft">
+            <div dir="auto" className="mr-4 rounded-lg rounded-bl-sm border border-line bg-panel-2/60 px-3 py-2 text-[13px] leading-relaxed text-soft">
               {x.pending ? (
                 <span className="flex items-center gap-2 text-muted">
                   <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />{" "}
@@ -1460,22 +1550,22 @@ function eventText(e: MatchEvent, meta: Meta): { icon: string; text: string } | 
   }
 }
 
-export function LiveEvents({ feed, meta }: { feed: MatchEvent[]; meta: Meta | null }) {
+export function LiveEvents({ feed, meta, lang = "en" }: { feed: MatchEvent[]; meta: Meta | null; lang?: string }) {
   return (
-    <Panel title="Live events">
+    <Panel title={t(lang, "liveEvents")}>
       {!meta || !feed.length ? (
-        <div className="text-sm text-muted">Waiting for kick-off</div>
+        <div className="text-sm text-muted">{t(lang, "waiting")}</div>
       ) : (
         <ol className="h-full space-y-1 overflow-hidden">
           {feed.slice(0, 7).map((e) => {
-            const t = eventText(e, meta);
-            if (!t) return null;
+            const line = eventText(e, meta);
+            if (!line) return null;
             return (
               <li key={e.event_id} className="rise flex items-center gap-2 text-[12px]">
                 <span className="w-7 shrink-0 font-mono text-muted">{e.minute}'</span>
                 <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: clubColor(meta, e.team) }} />
-                <span className="w-4 shrink-0 text-center">{t.icon}</span>
-                <span className={`truncate ${e.type === "goal" ? "font-semibold text-white" : "text-soft"}`}>{t.text}</span>
+                <span className="w-4 shrink-0 text-center">{line.icon}</span>
+                <span className={`truncate ${e.type === "goal" ? "font-semibold text-white" : "text-soft"}`}>{line.text}</span>
               </li>
             );
           })}
@@ -1493,19 +1583,21 @@ export function FullTime({
   league,
   recap,
   onLeave,
+  lang = "en",
 }: {
   meta: Meta;
   snapshot: Snapshot | null;
   league: League | null;
   recap: Overlay | undefined;
   onLeave: () => void;
+  lang?: string;
 }) {
   const s = snapshot?.score ?? {};
   const pos = (code: string) => league?.table.find((r) => r.code === code);
   return (
     <div className="rise absolute inset-0 z-10 grid place-items-center bg-black/65 backdrop-blur-sm">
       <div className="w-[min(640px,90%)] rounded-2xl bg-[rgba(7,11,20,.96)] p-6 shadow-2xl ring-1 ring-white/10">
-        <div className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">Full-time</div>
+        <div className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">{t(lang, "fullTime")}</div>
         <div className="mt-3 flex items-center justify-center gap-5">
           <Crest code={meta.home.code} colors={meta.home.colors} size={44} />
           <span className="font-mono text-5xl">
@@ -1517,7 +1609,7 @@ export function FullTime({
           {meta.home.name} v {meta.away.name}
         </div>
         {recap && (
-          <div className="mt-4 rounded-lg border border-line bg-panel-2/60 p-4">
+          <div dir={dirOf(recap.content.lang)} className="mt-4 rounded-lg border border-line bg-panel-2/60 p-4">
             <div className="font-semibold">{recap.content.headline}</div>
             <p className="mt-1 text-[14px] leading-relaxed text-soft">{recap.content.body}</p>
           </div>
@@ -1535,8 +1627,215 @@ export function FullTime({
           </div>
         )}
         <button onClick={onLeave} className="mt-5 w-full rounded-xl bg-accent py-2.5 font-semibold text-ink">
-          Watch another match
+          {t(lang, "anotherMatch")}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- my metric ---------- */
+
+export const METRICS: { id: string; label: string; note: string }[] = [
+  { id: "possession", label: "Possession", note: "share of the ball, whole match" },
+  { id: "chances", label: "Chance quality", note: "expected goals from every shot" },
+  { id: "shots", label: "Shots", note: "attempts on goal" },
+  { id: "pressing", label: "Pressing", note: "balls won in the opponent's half" },
+  { id: "win", label: "Win probability", note: "live, from the score, time left and chance quality" },
+];
+
+function metricValues(metric: string, s: Snapshot, home: string, away: string): [number, number, (v: number) => string] {
+  const tm = s.teams ?? {};
+  switch (metric) {
+    case "chances":
+      return [s.xg[home] ?? 0, s.xg[away] ?? 0, (v) => v.toFixed(2)];
+    case "shots":
+      return [tm[home]?.shots ?? 0, tm[away]?.shots ?? 0, String];
+    case "pressing":
+      return [tm[home]?.high_regains ?? 0, tm[away]?.high_regains ?? 0, String];
+    case "win":
+      return [s.win_probability_pct?.[home] ?? 0, s.win_probability_pct?.[away] ?? 0, (v) => `${v}%`];
+    default:
+      return [s.possession_pct[home] ?? 0, s.possession_pct[away] ?? 0, (v) => `${v}%`];
+  }
+}
+
+/** The one number a "my metric" viewer follows, live, in the corner of the pitch. */
+export function MetricTracker({ metric, snapshot, meta }: { metric: string; snapshot: Snapshot | null; meta: Meta | null }) {
+  const [history, setHistory] = useState<[number, number][]>([]);
+  const info = METRICS.find((m) => m.id === metric) ?? METRICS[0];
+  const values = snapshot && meta ? metricValues(metric, snapshot, meta.home.code, meta.away.code) : null;
+  useEffect(() => {
+    if (values) setHistory((h) => [...h.slice(-59), [values[0], values[1]]]);
+  }, [snapshot?.t_ms]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => setHistory([]), [metric]);
+  if (!values || !meta) return null;
+  const [hv, av, fmt] = values;
+  const max = Math.max(1e-6, ...history.flat());
+  const path = (i: 0 | 1) =>
+    history.map((p, k) => `${k ? "L" : "M"}${((k / Math.max(1, history.length - 1)) * 100).toFixed(1)},${(28 - (p[i] / max) * 26).toFixed(1)}`).join(" ");
+  return (
+    <div className="pointer-events-none absolute right-[3%] top-[4%] w-56 rounded-lg bg-[rgba(7,11,20,.86)] px-3 py-2 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">My metric · {info.label}</div>
+      <div className="mt-1 flex items-baseline justify-between font-mono">
+        <span className="text-xl" style={{ color: meta.home.colors[0] }}>{fmt(hv)}</span>
+        <span className="text-[11px] text-muted">{meta.home.code} v {meta.away.code}</span>
+        <span className="text-xl" style={{ color: meta.away.colors[0] }}>{fmt(av)}</span>
+      </div>
+      {history.length > 1 && (
+        <svg viewBox="0 0 100 30" className="mt-1 h-7 w-full" preserveAspectRatio="none">
+          <path d={path(0)} fill="none" stroke={meta.home.colors[0]} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <path d={path(1)} fill="none" stroke={meta.away.colors[0]} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+        </svg>
+      )}
+      <div className="mt-0.5 text-[10px] text-muted">{info.note}</div>
+    </div>
+  );
+}
+
+/* ---------- analyst: last action ---------- */
+
+/** What the analyst view adds to every touch: how hard the pass was, how fast the ball went, the chance quality. */
+export function LastAction({ e, meta }: { e: MatchEvent | null; meta: Meta | null }) {
+  if (!e || !meta) return null;
+  const d = e as any;
+  const name = [...meta.home.players, ...meta.away.players].find((p) => p.id === e.player)?.name.split(" ").at(-1) ?? "";
+  const cells: [string, string][] = [];
+  const cap = (x?: string) => (x ? x[0].toUpperCase() + x.slice(1) : "");
+  if (e.type === "shot") {
+    cells.push(["Shot", cap(e.outcome)], ["xG", (d.xg ?? 0).toFixed(2)], ["Speed", `${Math.round(d.shot_speed_kmh ?? 0)} km/h`]);
+    if (d.body_part) cells.push(["With", cap(d.body_part)]);
+  } else if (e.type === "carry") {
+    cells.push(["Carry", cap(e.outcome ?? "complete")], ["Speed", `${Math.round(d.speed_kmh ?? 0)} km/h`]);
+  } else {
+    cells.push([e.type === "clearance" ? "Clearance" : "Pass", cap(e.outcome)]);
+    if (d.length_m) cells.push(["Length", `${Math.round(d.length_m)} m`]);
+    if (d.difficulty !== undefined) cells.push(["Difficulty", `${d.difficulty}/100`]);
+    if (d.ball_speed_kmh) cells.push(["Ball", `${Math.round(d.ball_speed_kmh)} km/h`]);
+    if (d.under_pressure) cells.push(["", "under pressure"]);
+  }
+  return (
+    <div className="pointer-events-none absolute left-[3%] top-[4%] flex items-center gap-3 rounded-lg bg-[rgba(7,11,20,.82)] px-3 py-1.5 text-[11px] shadow-xl ring-1 ring-white/10 backdrop-blur-md">
+      <i className="h-2 w-2 rounded-full" style={{ background: clubColor(meta, e.team) }} />
+      <span className="font-semibold">{name}</span>
+      {cells.map(([k, v], i) => (
+        <span key={i} className="flex gap-1">
+          {k && <span className="uppercase tracking-[0.1em] text-muted">{k}</span>}
+          <span className="font-mono text-white">{v}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- how it works ---------- */
+
+const REPO = "https://github.com/Wolverine-07/pitchside";
+
+/** The proof page: how a caption is made, and what was measured, including where the agent team is not better. */
+export function ProofModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+  const stages = [
+    ["Ingest", "A simulator streams every pass, tackle, shot and sprint, with positions and speeds. Three other games of the matchday run alongside."],
+    ["Interpret", "A deterministic stats engine computes possession, pass difficulty, xG, pressing, momentum, control vs chaos, win probability and the live table, and flags the moments that matter."],
+    ["Explain", "The Analyst agent works out why the moment matters, pulling numbers from the stats engine over MCP. Every number it cites is matched to the engine before it is kept."],
+    ["Show", "Each caption becomes a timed overlay (JSON schema in the repo) that any graphics system could draw. This page is one renderer."],
+    ["Personalize", "The Persona agent rewrites each caption for a casual fan, an analyst, a club supporter, a player follower and a metric follower; the Linguist translates into up to three languages."],
+  ];
+  const agents = [
+    ["Director", "picks what goes on air"],
+    ["Analyst", "explains why, with MCP stats tools"],
+    ["Narrator", "writes the caption"],
+    ["Verifier", "plain code: checks every number, name and minute; two rewrites, then a safe template"],
+    ["Persona", "one rewrite per viewer type, re-verified"],
+    ["Linguist", "translation, re-verified; Azure Translator if it fails twice"],
+    ["Pundit", "answers viewers' questions, numbers verified"],
+  ];
+  const results = [
+    ["0 of 104", "captions with a wrong number, single agent and agent team alike (5 matches, same model)"],
+    ["17% → 0%", "captions breaking broadcast style rules (mostly \"at 55 minutes\" phrasing), single agent vs the team"],
+    ["29", "agent drafts the Verifier sent back before they reached a viewer"],
+    ["102 / 104", "Foundry groundedness for the team (single agent: 103 / 104)"],
+    ["179 / 180", "pairs of viewers who got different captions for the same moment"],
+    ["0 s", "for goals, cards and big saves (instant verified caption); agent captions follow in about 7 to 10 s"],
+  ];
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="max-h-[90vh] w-[min(860px,100%)] overflow-y-auto rounded-2xl border border-line bg-panel p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">How Pitchside works</h2>
+            <p className="mt-1 text-[13px] text-soft">
+              The stats engine owns every number. The agents only write words, and nothing they write airs until code has checked it.
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-lg border border-line px-3 py-1 text-[13px] text-soft hover:text-white">
+            Close
+          </button>
+        </div>
+
+        <ol className="mt-5 grid gap-2 sm:grid-cols-5">
+          {stages.map(([name, text], i) => (
+            <li key={name} className="rounded-lg border border-line bg-panel-2/60 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
+                {i + 1}. {name}
+              </div>
+              <p className="mt-1 text-[12px] leading-snug text-soft">{text}</p>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <div>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Seven agents, Microsoft Agent Framework</h3>
+            <ul className="mt-2 space-y-1 text-[13px]">
+              {agents.map(([n, d]) => (
+                <li key={n}>
+                  <span className="font-semibold">{n}</span> <span className="text-soft">{d}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[12px] text-muted">
+              Model: gpt-4.1-mini on Microsoft Foundry. Every agent call is traced to Application Insights. Voices: Azure AI Speech.
+              Backup translation: Azure AI Translator. Runs on Azure Container Apps.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">What I measured</h3>
+            <ul className="mt-2 space-y-1.5 text-[13px]">
+              {results.map(([n, d]) => (
+                <li key={d} className="flex gap-3">
+                  <span className="w-20 shrink-0 font-mono font-semibold text-white">{n}</span>
+                  <span className="text-soft">{d}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[12px] text-muted">
+              Honest limits: the team is no better than one agent at getting numbers right, and it is slower (8.8 s vs 1.2 s per
+              caption). What it adds is the explanation, the checks, the audience versions and a trace for every line. All data is
+              synthetic.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4 text-[13px]">
+          <a className="rounded-lg border border-line px-3 py-1.5 text-soft hover:border-accent hover:text-white" href={REPO} target="_blank" rel="noreferrer">
+            Code on GitHub
+          </a>
+          <a className="rounded-lg border border-line px-3 py-1.5 text-soft hover:border-accent hover:text-white" href={`${REPO}/tree/main/backend/evals`} target="_blank" rel="noreferrer">
+            Evaluation scripts and results
+          </a>
+          <a className="rounded-lg border border-line px-3 py-1.5 text-soft hover:border-accent hover:text-white" href={`${REPO}/blob/main/schemas/overlay.schema.json`} target="_blank" rel="noreferrer">
+            Overlay schema
+          </a>
+        </div>
       </div>
     </div>
   );

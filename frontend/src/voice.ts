@@ -6,7 +6,9 @@
 
 type Line = { text: string; lang: string };
 
-const BROWSER_LANG: Record<string, string> = { en: "en-GB", hi: "hi-IN", es: "es-ES" };
+const BROWSER_LANG: Record<string, string> = {
+  en: "en-GB", hi: "hi-IN", es: "es-ES", fr: "fr-FR", pt: "pt-BR", ar: "ar-SA", de: "de-DE", ja: "ja-JP",
+};
 const MAX_WAITING = 2; // live commentary: drop stale lines rather than fall behind
 
 let enabled = false;
