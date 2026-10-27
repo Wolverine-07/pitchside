@@ -96,3 +96,26 @@ def test_matchday_league_moves_and_reports_goals_elsewhere():
     assert sum(r["played"] for r in final["table"]) == 8 * 10
     traces = [i["trace"] for i in items if i["kind"] == "trace"]
     assert any(t["type"] == "around_the_league" for t in traces)
+
+
+def test_metric_followers_may_quote_their_metric_and_nothing_made_up():
+    from pitchside.agents.pipeline import Job, tracked
+    from pitchside.agents.verify import verify
+    from pitchside.stats.state import MatchState
+    from pitchside.tools import StatsTools
+
+    events = simulate(16, "comeback")
+    state = MatchState()
+    for ev in events[:900]:
+        state.ingest(ev)
+    sheet = StatsTools(state).fact_sheet([])
+    pct = tracked("possession", sheet)["possession"]
+    a, b = state.teams
+    assert pct[a] + pct[b] in (99, 100, 101)
+    moment = state.moments[-1]
+    job = Job(moment, sheet, state.names, {}, ["metric:possession"], ["en"])
+    line = f"The home side have had {pct[a]}% of the ball."
+    assert verify(line, job.facts("metric:possession"), state.names, live=False).ok
+    assert not verify(
+        "They have had 97% of the ball.", job.facts("metric:possession"), state.names, live=False
+    ).ok

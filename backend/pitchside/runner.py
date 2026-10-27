@@ -11,7 +11,7 @@ import asyncio
 import time
 from collections.abc import AsyncIterator, Iterable
 
-from pitchside import overlays
+from pitchside import overlays, translator
 from pitchside.agents.pipeline import (
     Batch,
     EnglishReady,
@@ -22,6 +22,7 @@ from pitchside.agents.pipeline import (
 )
 from pitchside.agents.templates import template_line
 from pitchside.sim.league import Fixture, LeagueState
+from pitchside.stats.metrics import pass_difficulty
 from pitchside.stats.state import Evidence, MatchState, Moment
 from pitchside.tools import StatsTools
 
@@ -30,6 +31,7 @@ BATCH_EVERY_MS = 10_000  # the Director sees new candidates every 10 s of match 
 URGENT = {"goal", "card", "big_chance", "great_save", "half_time_recap", "full_time_recap"}
 FAST = {"goal", "card", "big_chance", "great_save"}  # shown instantly from templates
 BROADCAST_DELAY_MS = 4_000
+MAX_GAP_MS = 6_000  # longest pause between two events in live playback
 
 
 class Broadcast:
@@ -86,6 +88,22 @@ class Broadcast:
         )
         card["provenance"]["fast"] = True
         return card
+
+    async def _flash_in(self, flash: dict, lang: str, out: asyncio.Queue) -> None:
+        texts = await translator.translate(
+            [flash["content"]["headline"], flash["content"]["body"]], lang
+        )
+        if not texts:
+            return
+        card = {
+            **flash,
+            "overlay_id": f"{flash['overlay_id']}-{lang}",
+            "profile_key": f"flash:{lang}",
+            "content": {**flash["content"], "headline": texts[0], "body": texts[1], "lang": lang},
+        }
+        out.put_nowait(
+            {"kind": "overlay", "minute": flash["anchor_t_ms"] // 60000 + 1, "overlay": card}
+        )
 
     def _job(self, m: Moment) -> Job:
         return Job(
@@ -196,11 +214,16 @@ class Broadcast:
             if speed
             else []
         )
-        wall0, match0 = time.perf_counter(), None
+        wall0, prev_t, played_ms = time.perf_counter(), None, 0.0
         for ev in self.events:
             if speed and ev["type"] != "match_start":
-                match0 = ev["t_ms"] if match0 is None else match0
-                due = (ev["t_ms"] - match0) / 1000 / speed
+                # Like a broadcast cutting through a stoppage, long dead-ball gaps (goal
+                # celebrations, goal kicks, throw-ins) are shortened in playback. The match
+                # clock and every number keep the real time.
+                if prev_t is not None:
+                    played_ms += min(ev["t_ms"] - prev_t, MAX_GAP_MS)
+                prev_t = ev["t_ms"]
+                due = played_ms / 1000 / speed
                 wait = due - (time.perf_counter() - wall0)
                 if wait > 0:
                     await asyncio.sleep(wait)
@@ -215,7 +238,11 @@ class Broadcast:
                 moments = [*moments, *elsewhere]
             if ev["type"] == "period_end":
                 moments = [*moments, self._recap_moment(ev)]
-            yield {"kind": "event", "event": ev}
+            if ev["type"] in ("pass", "clearance"):
+                # Pass quality for the analyst strip: distance, difficulty rating, ball speed.
+                yield {"kind": "event", "event": {**ev, "difficulty": pass_difficulty(ev)}}
+            else:
+                yield {"kind": "event", "event": ev}
             if self.league and (
                 league_changed
                 or ev["type"] in {"physical", "period_start", "period_end", "match_end"}
@@ -235,11 +262,12 @@ class Broadcast:
             for m in moments:
                 self.pending.append(self._job(m))
                 if m.type in FAST or (m.significance >= 60 and not m.type.endswith("_recap")):
-                    yield {
-                        "kind": "overlay",
-                        "minute": m.minute,
-                        "overlay": self._flash(m, ev["match_id"]),
-                    }
+                    flash = self._flash(m, ev["match_id"])
+                    yield {"kind": "overlay", "minute": m.minute, "overlay": flash}
+                    # Viewers in other languages get it instantly too, through Azure Translator.
+                    if workers and translator.enabled():
+                        for lang in (x for x in self.langs if x != "en"):
+                            asyncio.create_task(self._flash_in(flash, lang, out))
             urgent = any(j.moment.type in URGENT for j in self.pending)
             due_now = ev["t_ms"] - self.last_batch_ms >= BATCH_EVERY_MS or ev["type"] == "match_end"
             if self.pending and (urgent or due_now):
@@ -327,6 +355,12 @@ class Broadcast:
         m = job.moment
         agents = [step["agent"] for step in job.trace]
         start = max(self.state.t_ms, m.t_ms + BROADCAST_DELAY_MS)
+        insight = job.insight or {}
+        why = {
+            "claim": insight.get("claim", ""),
+            "reason": insight.get("why", ""),
+            "cited": job.cited,
+        }
         out = []
         for lang, by_profile in by_lang.items():
             for profile, cap in by_profile.items():
@@ -341,6 +375,7 @@ class Broadcast:
                     agents=agents,
                     verified=True,
                     fallback=job.fallback,
+                    why=why,
                 )
                 out.append({"kind": "overlay", "minute": m.minute, "overlay": card})
         return out

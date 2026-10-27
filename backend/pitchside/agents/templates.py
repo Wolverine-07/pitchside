@@ -25,7 +25,7 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             outcome = {"saved": "saved", "blocked": "blocked", "off_target": "off target"}.get(
                 str(_ev(m, "outcome")), "missed"
             )
-            return f"Big chance for {who}, a {_ev(m, 'xg')} xG chance, and it's {outcome}."
+            return f"Big chance for {who}, a chance worth {_ev(m, 'xg')} expected goals, and it's {outcome}."
         case "pressing_spell":
             return f"{team} win the ball back {_ev(m, 'high_regains')} times in 90 seconds in the opposition half."
         case "momentum_swing":
@@ -50,7 +50,7 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             )
             return f"{who} has been everywhere: {top.value} {label} in the last ten minutes."
         case "great_save":
-            return f"Great save from {who}, keeping out a {_ev(m, 'xg_saved')} xG chance."
+            return f"Great save from {who}, keeping out a chance worth {_ev(m, 'xg_saved')} expected goals."
         case "around_the_league":
             pos = _ev(m, "live_position")
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos in (1, 2, 3) else 0, "th")

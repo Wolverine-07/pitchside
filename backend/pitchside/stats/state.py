@@ -316,6 +316,7 @@ class MatchState:
             "corners": c["corners"],
             "fouls": c["fouls"],
             "tackles_won": c["tackles"],
+            "high_regains": self.team_metrics(team)["high_regains"],
             "yellow_cards": c["yellow_cards"],
             "red_cards": c["red_cards"],
         }

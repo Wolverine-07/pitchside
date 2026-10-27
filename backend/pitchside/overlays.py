@@ -97,6 +97,7 @@ def insight_card(
     verified: bool,
     fallback: bool,
     trace_id: str | None = None,
+    why: dict | None = None,
 ) -> dict:
     return overlay(
         "insight_card",
@@ -110,6 +111,8 @@ def insight_card(
             "team": m.team,
             "player": m.player,
             "evidence": [e.__dict__ for e in m.evidence],
+            # The Analyst's reasoning and the numbers the Verifier matched to the stats engine.
+            "why": why or {},
         },
         start_t_ms=start_t_ms,
         priority=m.significance,

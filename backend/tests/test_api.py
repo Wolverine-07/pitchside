@@ -26,8 +26,13 @@ def test_health_and_meta_include_the_league():
 def test_studio_edits_are_verified_against_the_live_match():
     LIVE["test"] = live_state(20)
     c = TestClient(app)
-    good = c.post("/api/verify", json={"match_key": "test", "text": "Riverside lead 1-0 through Pellello."}).json()
-    bad = c.post("/api/verify", json={"match_key": "test", "text": "Riverside have had 99 shots and lead comfortably."}).json()
+    good = c.post(
+        "/api/verify", json={"match_key": "test", "text": "Riverside lead 1-0 through Pellello."}
+    ).json()
+    bad = c.post(
+        "/api/verify",
+        json={"match_key": "test", "text": "Riverside have had 99 shots and lead comfortably."},
+    ).json()
     gone = c.post("/api/verify", json={"match_key": "missing", "text": "anything"}).json()
     assert good["ok"], good
     assert not bad["ok"] and any("99" in p for p in bad["problems"])

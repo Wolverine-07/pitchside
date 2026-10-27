@@ -49,12 +49,22 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// Neural voices for spoken commentary in English, Hindi and Spanish. F0 is the free tier.
+// Neural voices for spoken commentary in all eight languages. F0 is the free tier.
 resource speech 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: '${name}-speech'
   location: speechLocation
   tags: tags
   kind: 'SpeechServices'
+  sku: { name: 'F0' }
+  properties: {}
+}
+
+// Backup translation when the Linguist agent's output fails the Verifier twice. Global, F0 free tier.
+resource translator 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: '${name}-translator'
+  location: 'global'
+  tags: tags
+  kind: 'TextTranslation'
   sku: { name: 'F0' }
   properties: {}
 }
@@ -112,6 +122,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'openai-key', value: openAiKey }
         { name: 'appinsights', value: insights.properties.ConnectionString }
         { name: 'speech-key', value: speech.listKeys().key1 }
+        { name: 'translator-key', value: translator.listKeys().key1 }
       ]
     }
     template: {
@@ -129,6 +140,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'appinsights' }
             { name: 'AZURE_SPEECH_KEY', secretRef: 'speech-key' }
             { name: 'AZURE_SPEECH_REGION', value: speechLocation }
+            { name: 'AZURE_TRANSLATOR_KEY', secretRef: 'translator-key' }
           ]
           probes: [
             {

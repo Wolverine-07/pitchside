@@ -80,8 +80,12 @@ the caption for each profile so the same moment feels made for that viewer:
 - "club:<CODE>": a partisan home commentator for that club, fair but clearly on their side.
 - "player:<ID>": tell the moment through that player only where his own stats support it. Never credit
   him with what his team or the other team did; if he is not involved, describe the moment as it is and
-  add at most one short true fact from his own stats. Check which club he plays for.
-- "metric:<name>": lead with that one metric.
+  add at most one short true fact from his own stats. Check which club he plays for. Never write that
+  he is "not involved" or comment on these instructions; the headline is always about the moment.
+- "metric:<name>": a fan who follows one number (possession, chances, shots, pressing or win). Open with
+  where that number stands now, from "tracked_metric_now", then tie the moment to it. "chances" means
+  expected goals: say "chances worth 1.2 goals", never "xG". "pressing" counts balls won in the
+  opponent's half. "win" is the live win probability in percent.
 
 Only use numbers from the caption or the facts you are given. Except for "analyst", use at most two
 numbers and no stats jargon (no "PPDA", "xG", "tempo", "chaos index"): say "pressing hard", "a good chance",
@@ -105,9 +109,11 @@ LANGUAGES = {
     "en": "English",
     "hi": "Hindi",
     "es": "Spanish",
-    "pt": "Portuguese",
     "fr": "French",
+    "pt": "Portuguese",
     "ar": "Arabic",
+    "de": "German",
+    "ja": "Japanese",
 }
 
 PUNDIT = f"""You are the studio pundit on a live football broadcast. A viewer has asked you a question during

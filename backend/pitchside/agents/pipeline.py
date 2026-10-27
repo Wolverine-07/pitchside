@@ -30,6 +30,7 @@ from agent_framework import (
     handler,
 )
 
+from pitchside import translator
 from pitchside.stats.state import Moment
 
 from . import prompts
@@ -39,6 +40,24 @@ from .verify import check_audience, check_citations, check_names, check_numbers,
 MAX_ATTEMPTS = 2
 CALL_TIMEOUT_S = 12.0
 ALWAYS_AIR = {"goal", "big_chance", "card", "half_time_recap", "full_time_recap"}
+
+
+def tracked(metric: str, sheet: dict) -> dict:
+    """The live values of one metric for both clubs, for a viewer who follows that number."""
+    snap = sheet.get("snapshot") or {}
+    teams = snap.get("teams") or {}
+    metrics = sheet.get("metrics") or {}
+    values = {
+        "possession": lambda: snap.get("possession_pct"),
+        "chances": lambda: snap.get("xg"),
+        "shots": lambda: {t: v["shots"] for t, v in teams.items()},
+        "pressing": lambda: {
+            t: (m.get(None) or {}).get("high_regains") for t, m in metrics.items()
+        },
+        "win": lambda: snap.get("win_probability_pct"),
+    }
+    get = values.get(metric)
+    return {metric: get()} if get else {}
 
 
 @dataclass
@@ -73,6 +92,8 @@ class Job:
             if followed
             else {}
         )
+        if profile and profile.startswith("metric:"):
+            extra["tracked"] = tracked(profile.split(":", 1)[1], self.sheet)
         return {
             **extra,
             "moment": {
@@ -338,6 +359,9 @@ class PersonaExec(Executor):
                 for pid in followed
             },
         }
+        metrics = [p.split(":", 1)[1] for p in profiles if p.startswith("metric:")]
+        if metrics:
+            body["tracked_metric_now"] = {m: tracked(m, job.sheet).get(m) for m in metrics}
         if fix:
             body["verifier_rejected_these_rewrites_because"] = fix
         return json.dumps(body)
@@ -395,45 +419,92 @@ class LinguistExec(Executor):
         t0 = time.perf_counter()
         job.translations = {"en": dict(job.variants)}
         others = [lang for lang in job.langs if lang != "en"]
-        # One call per language, in parallel: each viewer waits for one translation, not all of them.
-        replies = await asyncio.gather(
-            *(
-                ask(
-                    self.agent,
-                    json.dumps(
-                        {"languages": {lang: prompts.LANGUAGES[lang]}, "captions": job.variants}
-                    ),
-                )
-                for lang in others
-            )
-        )
-        out: dict = {}
-        for r in replies:
-            out.update((r or {}).get("translations", {}))
-        reply = any(replies)
-        kept = 0
-        for lang in others:
-            job.translations[lang] = {}
-            for profile, caption in job.variants.items():
-                t = out.get(lang, {}).get(profile)
-                text = f"{(t or {}).get('headline', '')}. {(t or {}).get('line', '')}"
-                pf = job.facts(profile)
-                if t and not check_numbers(text, pf) and not check_names(text, pf, job.names):
-                    job.translations[lang][profile] = t
-                    kept += 1
-                else:
-                    job.translations[lang][profile] = (
-                        caption  # English rather than an unchecked line
-                    )
-        total = len(others) * len(job.variants)
-        status = "ok" if reply or not others else ("fallback" if self.agent else "rule")
-        job.log(
-            "linguist",
-            t0,
-            status,
-            f"{kept}/{total} translations kept" if others else "English only",
-        )
+        # One language per call, all in parallel: each viewer waits for their language only.
+        results = await asyncio.gather(*(self._language(job, lang) for lang in others))
+        notes, used_model = [], False
+        for lang, (captions, how) in zip(others, results):
+            job.translations[lang] = captions
+            used_model |= how["model"] > 0
+            parts = [f"{how['model']} agent"]
+            if how["retry"]:
+                parts.append(f"{how['retry']} fixed on retry")
+            if how["translator"]:
+                parts.append(f"{how['translator']} via Azure Translator")
+            if how["english"]:
+                parts.append(f"{how['english']} left in English")
+            notes.append(f"{lang}: " + ", ".join(parts))
+        status = "ok" if used_model or not others else ("fallback" if self.agent else "rule")
+        job.log("linguist", t0, status, "; ".join(notes) if others else "English only")
         await ctx.yield_output(job)
+
+    def _bad(self, job: Job, profile: str, t: dict | None) -> list[str]:
+        if not t or not t.get("line"):
+            return ["no translation"]
+        text = f"{t.get('headline', '')}. {t.get('line', '')}"
+        facts = job.facts(profile)
+        return check_numbers(text, facts) + check_names(text, facts, job.names)
+
+    async def _language(self, job: Job, lang: str) -> tuple[dict, dict]:
+        """Agent translation, one retry with the reasons, then Azure Translator. English only as a last resort."""
+        how = {"model": 0, "retry": 0, "translator": 0, "english": 0}
+        name = prompts.LANGUAGES.get(lang, lang)
+        reply = await ask(
+            self.agent, json.dumps({"languages": {lang: name}, "captions": job.variants})
+        )
+        got = _by_lang(reply, lang, name)
+        out, failed = {}, {}
+        for profile in job.variants:
+            problems = self._bad(job, profile, got.get(profile))
+            if problems:
+                failed[profile] = problems
+            else:
+                out[profile] = got[profile]
+                how["model"] += 1
+        if failed and reply:
+            again = await ask(
+                self.agent,
+                json.dumps(
+                    {
+                        "languages": {lang: name},
+                        "captions": {p: job.variants[p] for p in failed},
+                        "verifier_rejected_previous_translation_because": failed,
+                    }
+                ),
+            )
+            retry = _by_lang(again, lang, name)
+            for profile in list(failed):
+                if not self._bad(job, profile, retry.get(profile)):
+                    out[profile] = retry[profile]
+                    how["retry"] += 1
+                    del failed[profile]
+        if failed:
+            texts = [
+                x for p in failed for x in (job.variants[p]["headline"], job.variants[p]["line"])
+            ]
+            machine = await translator.translate(texts, lang)
+            for k, profile in enumerate(list(failed)):
+                if machine:
+                    t = {"headline": machine[2 * k], "line": machine[2 * k + 1]}
+                    if not self._bad(job, profile, t):
+                        out[profile] = t
+                        how["translator"] += 1
+                        del failed[profile]
+                        continue
+        for profile in failed:
+            out[profile] = job.variants[profile]  # an unchecked line never airs; English does
+            how["english"] += 1
+        return out, how
+
+
+def _by_lang(reply: dict | None, lang: str, name: str) -> dict:
+    """Models sometimes key the reply by language name ('Hindi') instead of code ('hi')."""
+    tr = (reply or {}).get("translations") or {}
+    for key in (lang, name, name.lower()):
+        if isinstance(tr.get(key), dict):
+            return tr[key]
+    if len(tr) == 1 and isinstance(next(iter(tr.values())), dict):
+        return next(iter(tr.values()))
+    return {}
 
 
 def headline_for(m: Moment, clubs: dict[str, str], names: dict[str, str] | None = None) -> str:

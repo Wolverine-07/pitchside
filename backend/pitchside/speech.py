@@ -12,6 +12,11 @@ VOICES = {
     "en": ("en-GB", "en-GB-RyanNeural"),
     "hi": ("hi-IN", "hi-IN-MadhurNeural"),
     "es": ("es-ES", "es-ES-AlvaroNeural"),
+    "fr": ("fr-FR", "fr-FR-HenriNeural"),
+    "pt": ("pt-BR", "pt-BR-AntonioNeural"),
+    "ar": ("ar-SA", "ar-SA-HamedNeural"),
+    "de": ("de-DE", "de-DE-ConradNeural"),
+    "ja": ("ja-JP", "ja-JP-KeitaNeural"),
 }
 
 
