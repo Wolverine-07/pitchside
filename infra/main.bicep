@@ -153,7 +153,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       // Scale to zero when nobody is watching; one replica handles a few live matches.
-      scale: { minReplicas: 0, maxReplicas: 2 }
+      // One replica: each live match keeps its state in memory, so Ask and MCP must reach the same one.
+      scale: { minReplicas: 0, maxReplicas: 1 }
     }
   }
 }

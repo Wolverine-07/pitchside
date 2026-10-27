@@ -1,4 +1,5 @@
 import asyncio
+from itertools import pairwise
 
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import simulate
@@ -119,3 +120,27 @@ def test_metric_followers_may_quote_their_metric_and_nothing_made_up():
     assert not verify(
         "They have had 97% of the ball.", job.facts("metric:possession"), state.names, live=False
     ).ok
+
+
+def test_broadcast_never_goes_quiet():
+    from pitchside.api import league_for
+    from pitchside.sim.league import matchday
+
+    fixtures = matchday(16, "comeback", "KSC-RVA")
+
+    async def go():
+        b = Broadcast(fixtures[0].events, None, ["casual"], ["en"], league=league_for(fixtures))
+        return [i async for i in b.run()]
+
+    cards = [
+        i["overlay"]
+        for i in asyncio.run(go())
+        if i["kind"] == "overlay"
+        and i["overlay"]["type"] == "insight_card"
+        and i["overlay"]["profile_key"] == "casual:en"
+    ]
+    # A kick-off caption at 0', then something on air at least every few minutes.
+    assert cards[0]["content"]["moment_type"] == "match_preview"
+    assert cards[0]["anchor_t_ms"] == 0
+    times = [c["anchor_t_ms"] / 60_000 for c in cards]
+    assert max(b - a for a, b in pairwise(times)) < 6

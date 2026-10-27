@@ -32,6 +32,10 @@ URGENT = {"goal", "card", "big_chance", "great_save", "half_time_recap", "full_t
 FAST = {"goal", "card", "big_chance", "great_save"}  # shown instantly from templates
 BROADCAST_DELAY_MS = 4_000
 MAX_GAP_MS = 6_000  # longest pause between two events in live playback
+# A broadcast never goes quiet for long: after this much match time with nothing worth airing,
+# the stats engine sums up the state of play and the agents explain it.
+PULSE_AFTER_MS = 180_000
+AIRABLE = 45  # the Director's bar for a moment worth airing
 
 
 class Broadcast:
@@ -64,6 +68,7 @@ class Broadcast:
         self.recent_lines: list[str] = []
         self.pending: list[Job] = []
         self.last_batch_ms = 0
+        self.quiet_since_ms = 0
 
     @property
     def clubs(self) -> dict[str, str]:
@@ -188,6 +193,63 @@ class Broadcast:
             evidence=ev_list,
         )
 
+    def _preview_moment(self, ev: dict) -> Moment:
+        """Kick-off: who, where and what is at stake, so the first caption airs at 0', not 5'."""
+        st = self.state
+        home, away = st.teams
+        evidence = [Evidence("venue", st.meta.get("venue", ""))]
+        if self.league:
+            rows = {r["code"]: r for r in self.league.table(live=False)}
+            for t in (home, away):
+                evidence += [
+                    Evidence("live_position", rows[t]["pos"], t),
+                    Evidence("points", rows[t]["points"], t),
+                ]
+        return Moment(
+            id="preview",
+            type="match_preview",
+            t_ms=ev["t_ms"],
+            minute=0,
+            team=None,
+            player=None,
+            significance=70,
+            summary=f"Kick-off: {self.clubs.get(home, home)} v {self.clubs.get(away, away)}",
+            evidence=evidence,
+        )
+
+    def _pulse_moment(self, ev: dict) -> Moment:
+        """A read of the last five minutes after a quiet spell: who has the ball, who is shooting."""
+        st = self.state
+        a, b = st.teams
+        window = 300 if st.t_ms >= 300_000 else None  # "so far" until five minutes have been played
+        recent = {t: st.team_metrics(t, window) for t in (a, b)}
+        leader = max((a, b), key=lambda t: recent[t]["possession_pct"])
+        evidence = [Evidence("score", st.score_line())]
+        for t in (leader, st.other(leader)):
+            r = recent[t]
+            evidence += [
+                Evidence("possession_pct", r["possession_pct"], t, window_s=window),
+                Evidence("shots", r["shots"], t, window_s=window),
+            ]
+            if r["pass_accuracy_pct"] is not None:
+                evidence.append(
+                    Evidence("pass_accuracy_pct", r["pass_accuracy_pct"], t, window_s=window)
+                )
+        return Moment(
+            id=f"pulse-{ev['event_id']}",
+            type="match_pulse",
+            t_ms=ev["t_ms"],
+            minute=st.minute,
+            team=leader,
+            player=None,
+            significance=50,
+            summary=(
+                f"State of play: {st.score_line()}, "
+                f"{self.clubs.get(leader, leader)} on the ball more {'in the last five minutes' if window else 'so far'}"
+            ),
+            evidence=evidence,
+        )
+
     def _advance_league(self, t_ms: int) -> tuple[list[Moment], bool]:
         """Play the other fixtures up to t_ms. Returns new moments and whether any score changed."""
         moments, changed = [], False
@@ -238,6 +300,16 @@ class Broadcast:
                 moments = [*moments, *elsewhere]
             if ev["type"] == "period_end":
                 moments = [*moments, self._recap_moment(ev)]
+            if ev["type"] == "match_start":
+                moments = [*moments, self._preview_moment(ev)]
+            if any(m.significance >= AIRABLE for m in moments):
+                self.quiet_since_ms = ev["t_ms"]
+            elif (
+                ev["type"] in ("pass", "carry")
+                and ev["t_ms"] - self.quiet_since_ms >= PULSE_AFTER_MS
+            ):
+                moments = [*moments, self._pulse_moment(ev)]
+                self.quiet_since_ms = ev["t_ms"]
             if ev["type"] in ("pass", "clearance"):
                 # Pass quality for the analyst strip: distance, difficulty rating, ball speed.
                 yield {"kind": "event", "event": {**ev, "difficulty": pass_difficulty(ev)}}

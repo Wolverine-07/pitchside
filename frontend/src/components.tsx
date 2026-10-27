@@ -21,6 +21,8 @@ const MOMENT_LABEL: Record<string, string> = {
   milestone: "Milestone",
   player_speed: "Top speed",
   player_spotlight: "Player spotlight",
+  match_preview: "Kick-off",
+  match_pulse: "State of play",
   great_save: "Great save",
   around_the_league: "Around the league",
   half_time_recap: "Half-time recap",
@@ -705,7 +707,7 @@ export function CommentaryFeed({
 }) {
   if (!cards.length)
     return (
-      <Empty text="Captions appear here as the agents put moments on air." />
+      <Empty text="The first caption airs at kick-off. After that, the agents comment on every moment that matters, and sum up the game whenever it goes quiet." />
     );
   return (
     <ol className="space-y-2.5">

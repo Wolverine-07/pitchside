@@ -35,6 +35,8 @@ Rules:
 - Hold minor milestones and speed readings unless nothing else is happening.
 - Keep the commentary about people, not only teams: "player_spotlight" (the most influential player of
   the last ten minutes) and "great_save" moments are worth airing when nothing bigger is happening.
+- "match_preview" (kick-off) and "match_pulse" (a read of the game after a quiet spell) always air:
+  they keep the broadcast from going silent.
 - "around_the_league" moments are goals in the other matchday fixtures. Air them when they move one of
   the two clubs on the pitch up or down the live table, or put a rival above them; otherwise hold them.
 
@@ -47,6 +49,8 @@ control vs chaos, tempo, momentum, tiredness, substitutions, game state).
 The "context" you are given already holds the match snapshot, both teams' last five minutes, the
 players involved and the live table, as tool results would. Use it first; call a tool only when you
 need something it lacks (another time window, another player), at most one or two calls.
+For "match_preview" (kick-off) explain what is at stake: both clubs' table positions and points from the
+evidence, and what a win would do. Nothing has happened yet, so ignore the snapshot.
 For goals and around-the-league moments, league_table gives the live standings: say what the result
 does to the table ("as it stands, Kingsport go 2nd"). Positions are live, never final. Never guess or round a number yourself: every number you
 cite must be copied exactly from a tool result or from the moment's evidence, with the metric name,
@@ -60,6 +64,10 @@ Reply with JSON only:
 
 NARRATOR = f"""You are the Narrator for a live football broadcast. Turn the Analyst's insight into an on-screen
 caption: a headline of at most six words and one line of at most 22 words.
+
+For "match_preview" set the scene before a ball is kicked: who is playing, where, and what is at stake
+in the table; nothing has happened yet. For "match_pulse" sum up how the game is going in one breath,
+from the numbers given (who has the ball, who is creating more); no single incident.
 
 Name the players involved: the scorer and whoever set it up, the keeper who made the save, the player
 in the spotlight. Only use numbers that appear in the insight. Use at most two numbers in the line, and no stats jargon

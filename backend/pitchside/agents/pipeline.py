@@ -39,7 +39,15 @@ from .verify import check_audience, check_citations, check_names, check_numbers,
 
 MAX_ATTEMPTS = 2
 CALL_TIMEOUT_S = 12.0
-ALWAYS_AIR = {"goal", "big_chance", "card", "half_time_recap", "full_time_recap"}
+ALWAYS_AIR = {
+    "goal",
+    "big_chance",
+    "card",
+    "half_time_recap",
+    "full_time_recap",
+    "match_preview",
+    "match_pulse",
+}
 
 
 def tracked(metric: str, sheet: dict) -> dict:
@@ -524,6 +532,8 @@ def headline_for(m: Moment, clubs: dict[str, str], names: dict[str, str] | None 
         "great_save": "What a save",
         "half_time_recap": "Half-time",
         "full_time_recap": "Full-time",
+        "match_preview": "Kick-off",
+        "match_pulse": "State of play",
     }.get(m.type, m.type.replace("_", " ").title())
 
 

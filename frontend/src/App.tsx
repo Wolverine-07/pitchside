@@ -38,6 +38,13 @@ const modes = (lang: string): { id: Mode; label: string }[] => [
   { id: "player", label: t(lang, "myPlayer") },
   { id: "metric", label: t(lang, "myMetric") },
 ];
+// Playback lengths for the demo match (stoppages are shortened, so 1x is about 72 minutes).
+const SPEEDS: Record<number, string> = {
+  1: "Real time (about 70 minutes)",
+  3: "3x, about 25 minutes (recommended)",
+  5: "5x, about 15 minutes",
+  10: "10x, about 7 minutes",
+};
 const MAX_EXTRA_LANGS = 3; // each language is one more parallel Linguist call per moment
 
 function Segmented<T extends string>({ items, value, onChange, label }: { items: { id: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
@@ -505,7 +512,7 @@ function Setup({ meta, settings, setSettings, onStart }: { meta: Meta | null; se
               <select className={selectClass} value={settings.speed} onChange={(e) => setSettings({ ...settings, speed: Number(e.target.value) })}>
                 {[1, 3, 5, 10].map((s) => (
                   <option key={s} value={s}>
-                    {s === 1 ? "Real time" : `${s}x${s === 3 ? " (recommended)" : ""}`}
+                    {SPEEDS[s]}
                   </option>
                 ))}
               </select>

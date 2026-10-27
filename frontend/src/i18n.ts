@@ -84,6 +84,8 @@ const MOMENTS: Record<string, Partial<Record<LangId, string>>> = {
   half_time_recap: { hi: "हाफ-टाइम सार", es: "Resumen del descanso", fr: "Bilan à la pause", pt: "Resumo ao intervalo", ar: "ملخص الشوط الأول", de: "Halbzeitfazit", ja: "前半のまとめ" },
   full_time_recap: { hi: "मैच का सार", es: "Resumen final", fr: "Bilan du match", pt: "Resumo final", ar: "ملخص المباراة", de: "Spielfazit", ja: "試合のまとめ" },
   player_spotlight: { hi: "खिलाड़ी पर नज़र", es: "Protagonista", fr: "Joueur en vue", pt: "Destaque", ar: "لاعب تحت الضوء", de: "Spieler im Fokus", ja: "注目選手" },
+  match_preview: { hi: "किक-ऑफ़", es: "Previa", fr: "Coup d'envoi", pt: "Antevisão", ar: "صافرة البداية", de: "Anpfiff", ja: "キックオフ" },
+  match_pulse: { hi: "मैच का हाल", es: "Cómo va el partido", fr: "Le point du match", pt: "Como está o jogo", ar: "مجريات المباراة", de: "Spielstand-Analyse", ja: "試合の流れ" },
   great_save: { hi: "शानदार बचाव", es: "Paradón", fr: "Superbe arrêt", pt: "Grande defesa", ar: "تصدٍّ رائع", de: "Glanzparade", ja: "好セーブ" },
 };
 

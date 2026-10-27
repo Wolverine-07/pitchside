@@ -13,6 +13,12 @@ def _ev(m: Moment, metric: str):
     return next((e.value for e in m.evidence if e.metric == metric), None)
 
 
+def _ordinal(n) -> str:
+    n = int(n)
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> str:
     who = names.get(m.player or "", "")
     team = clubs.get(m.team or "", m.team or "")
@@ -55,6 +61,35 @@ def template_line(m: Moment, names: dict[str, str], clubs: dict[str, str]) -> st
             pos = _ev(m, "live_position")
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos in (1, 2, 3) else 0, "th")
             return f"{m.summary}. {team} are {pos}{suffix} on the live table."
+        case "match_preview":
+            venue = _ev(m, "venue")
+            codes = [e.team for e in m.evidence if e.metric == "live_position"]
+            if len(codes) != 2:
+                return f"Kick-off at {venue}." if venue else "Kick-off."
+            home, away = codes
+
+            def where(code: str) -> str:
+                pos = next(
+                    e.value for e in m.evidence if e.metric == "live_position" and e.team == code
+                )
+                pts = next(e.value for e in m.evidence if e.metric == "points" and e.team == code)
+                return f"{clubs.get(code, code)} ({_ordinal(pos)}, {pts} points)"
+
+            return (
+                f"Kick-off at {venue}: {where(home)} take on {where(away)}. "
+                "Three other league games start at the same time."
+            )
+        case "match_pulse":
+            leader = next(e for e in m.evidence if e.metric == "possession_pct")
+            shots = {e.team: e.value for e in m.evidence if e.metric == "shots"}
+            other = next((t for t in shots if t != leader.team), None)
+            ball = (
+                f"It's {_ev(m, 'score')}, and {clubs.get(leader.team, leader.team)} have had "
+                f"{leader.value}% of the ball {'in the last five minutes' if leader.window_s else 'so far'}"
+            )
+            if not any(shots.values()):
+                return f"{ball}, but neither side has had a shot."
+            return f"{ball}, with {shots.get(leader.team, 0)} shots to {shots.get(other, 0)}."
         case "milestone":
             return m.summary + "."
         case _:
