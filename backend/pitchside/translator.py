@@ -16,6 +16,24 @@ ENDPOINT = "https://api.cognitive.microsofttranslator.com/translate"
 
 # Football words generic machine translation gets wrong ("goal" as in "target").
 GLOSSARY = {
+    "expected goals": {
+        "hi": "अपेक्षित गोल",
+        "es": "goles esperados",
+        "fr": "buts attendus",
+        "pt": "golos esperados",
+        "ar": "أهداف متوقعة",
+        "de": "erwartete Tore",
+        "ja": "期待ゴール",
+    },
+    "off target": {
+        "hi": "निशाने से बाहर",
+        "es": "fuera",
+        "fr": "non cadré",
+        "pt": "ao lado",
+        "ar": "خارج المرمى",
+        "de": "neben das Tor",
+        "ja": "枠外",
+    },
     "Goal": {
         "hi": "गोल",
         "es": "Gol",

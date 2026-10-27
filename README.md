@@ -2,7 +2,7 @@
 
 **AI agents that explain the game, not just the score.**
 
-Pitchside watches a synthetic football match event by event, works out which moments matter and why, checks every number before it goes on screen, and tells the story differently for each viewer: analyst or casual fan, your club, your player, in English, Hindi or Spanish.
+Pitchside watches a synthetic football match event by event, works out which moments matter and why, checks every number before it goes on screen, and tells the story differently for each viewer: analyst or casual fan, your club, your player, the one stat you care about, in any of eight languages.
 
 Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Microsoft Agent Framework, MCP, Azure Container Apps and Azure AI Speech.
 
@@ -23,7 +23,7 @@ One pipeline, five stages, as the challenge asks:
 2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo, a control vs chaos index and a live win probability. It flags candidate moments with a significance score and the evidence behind each one.
 3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools, including the live league table.
 4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer.
-5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club and a chosen player, localized into Hindi and Spanish, and read aloud by Azure AI Speech neural voices.
+5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club, a chosen player and a viewer who follows one stat (possession, chance quality, shots, pressing or win probability). Each viewer picks up to three languages besides English (Hindi, Spanish, French, Portuguese, Arabic, German, Japanese); the interface follows the language, Arabic reads right to left, and Azure AI Speech reads captions aloud in a native neural voice.
 
 What a viewer gets on top of that:
 
@@ -32,7 +32,9 @@ What a viewer gets on top of that:
 - **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown.
 - **Watch any of the four matchday fixtures.** Every club has its own squad, colours, playing style and home ground; the rest of the league plays around whichever match you pick.
 - **Studio mode.** For broadcasters: no caption airs until a producer approves it, and a producer's own edits are checked by the Verifier against the live match before they go out.
-- **Broadcast touches:** goal banner and animated goal replays, scorers on the scoreboard, a shot map in analyst mode, a live card for the player you follow, a win-probability bar and a scores ticker.
+- **Why trust this?** Every caption in the feed opens to show the Analyst's reasoning, the numbers it rests on (as the stats engine reported them) and its path through the agents: what the Verifier sent back and why, how many audience versions were rewritten, and how each language was produced.
+- **How it works**, in the app header: the five stages, the agents, and what I measured, including where the agent team is not better than one agent.
+- **Broadcast touches:** goal banner and animated goal replays, scorers on the scoreboard, a shot map and a last-action strip in analyst mode (pass length, difficulty and ball speed; shot xG and speed), a live card for the player you follow, a win-probability bar and a scores ticker.
 
 ## How it works
 
@@ -66,9 +68,9 @@ A rejected caption goes back to the Narrator with the reasons. If it fails twice
 | Analyst | Explains why the moment matters, citing numbers fetched over MCP (stats and league table) | The moment's own summary |
 | Narrator | Writes a headline and a live line in commentator style, and the half-time and full-time recaps | Template line |
 | Verifier | Checks numbers, names, timing and style; sends drafts back | (plain code, cannot fail) |
-| Persona | Rewrites for casual, analyst, club and player viewers; one retry with the Verifier's reasons | The verified base line |
+| Persona | Rewrites for casual, analyst, club, player and metric viewers; one retry with the Verifier's reasons | The verified base line |
 | Pundit | Answers viewers' questions from live data (Ask Pitchside) | An honest "I can't confirm that" |
-| Linguist | Localizes into Hindi and Spanish, keeping numbers intact | English |
+| Linguist | Localizes into each viewer's languages, one parallel call per language; every translation is re-checked for numbers and names, with one retry | Azure AI Translator (football glossary, names protected), then English |
 
 Shared state is one `MatchState` per match. Each live match gets its own key, and the Analyst's MCP client sends it as a header, so tools always answer for the right match. Live matches stream continuously while up to three moments are handled in parallel.
 
@@ -83,7 +85,7 @@ I tested the agent team against a single agent: same model (`gpt-4.1-mini`), sam
 | Foundry relevance / coherence | 104 / 104 | 104 / 104 |
 | Foundry fluency | 104 / 104 | 100 / 104 |
 | Broke broadcast style rules (mostly "at 55 minutes") | 18 / 104 | 0 / 104 |
-| Versions per moment | 1 caption, English | 4 audiences x 3 languages |
+| Versions per moment | 1 caption, English | 4 audiences x 3 languages (now 5 x up to 4) |
 | Drafts sent back by the Verifier | n/a | 29 (6 fell back to templates) |
 | Time per moment | 1.2 s | 8.8 s |
 
@@ -101,13 +103,13 @@ What I take from this:
 | Interpret into stats, patterns, context | `backend/pitchside/stats` |
 | Explain why moments matter (control vs chaos, pressure, rhythm) | stats engine moments + Analyst agent |
 | Render on screen, timed and machine-readable | `overlays.py`, `schemas/overlay.schema.json`, `frontend/` |
-| Personalize: modes, favourite club, favourite player | Persona agent, setup screen |
+| Personalize: modes, favourite club, favourite player, favourite metric | Persona agent, setup screen, My metric view |
 | Player identification with speed and distance triggers | `sprint` and `physical` events, player tags |
 | Pass quality: distance, accuracy, difficulty | `stats/metrics.py` `pass_difficulty` |
 | Ball speed and shot speed | simulator physics, `shot_speed_kmh`, `ball_speed_kmh` |
 | Narratives, milestones, recaps | Narrator agent, milestone moments, half-time and full-time recaps |
 | Data innovation | the simulator, five sample matches in `data/samples`, `schemas/event.schema.json` |
-| Multi-language storytelling | Linguist agent (Hindi, Spanish) |
+| Multi-language storytelling | Linguist agent, eight languages, Azure AI Translator backup, native Speech voices |
 | Auto-eventing from video | not built; see roadmap |
 
 ## The data
@@ -119,7 +121,7 @@ Everything is synthetic, with made-up clubs and players. The simulator is a poss
 ```bash
 cd backend
 uv sync
-uv run pytest                                   # 36 tests
+uv run pytest                                   # 37 tests
 PITCHSIDE_PROVIDER=templates uv run python -m pitchside.run   # whole match, no model needed
 cp .env.example .env                            # add your Foundry endpoint, deployment and key
 uv run uvicorn pitchside.api:app --port 8000
@@ -127,13 +129,15 @@ uv run uvicorn pitchside.api:app --port 8000
 cd ../frontend && npm install && npm run dev    # http://localhost:5173
 ```
 
+Every push runs lint, the tests and the frontend build in GitHub Actions (`.github/workflows/ci.yml`).
+
 Generate a match: `uv run python -m pitchside.sim --seed 7 --out ../data/samples/seed7.jsonl`
 
 Use the stats tools from any MCP client (for example GitHub Copilot in VS Code): point it at `http://localhost:8000/mcp/`.
 
 ## Deploy to Azure
 
-`infra/main.bicep` provisions Log Analytics, Application Insights, a container registry, a Container Apps environment (Consumption profile) and the app, with the model key held as a Container Apps secret. `infra/deploy.sh` builds the image, pushes it and rolls it out. Agent traces are exported with OpenTelemetry to the Application Insights resource connected to the Foundry project, so every workflow run, agent call and tool call shows up in Foundry's tracing view.
+`infra/main.bicep` provisions Log Analytics, Application Insights, a container registry, a Container Apps environment (Consumption profile), Azure AI Speech, Azure AI Translator and the app, with the model key held as a Container Apps secret. `infra/deploy.sh` builds the image, pushes it and rolls it out. Agent traces are exported with OpenTelemetry to the Application Insights resource connected to the Foundry project, so every workflow run, agent call and tool call shows up in Foundry's tracing view.
 
 Things I hit on an Azure for Students subscription: ACR Tasks are blocked (so the image is built locally), the default "express" Container Apps environment can't pull private images (so the Bicep asks for a Consumption workload profile), and Container Apps wanted OCI layer media types (`infra/oci_retag.py` rewrites the manifest).
 
@@ -145,7 +149,7 @@ Things I hit on an Azure for Students subscription: ACR Tasks are blocked (so th
 
 ## Acknowledgements
 
-Built with Microsoft Foundry, Microsoft Agent Framework, Azure Container Apps, Application Insights, Azure AI Speech and the Model Context Protocol. I used Claude Code as a coding assistant during the build.
+Built with Microsoft Foundry, Microsoft Agent Framework, Azure Container Apps, Application Insights, Azure AI Speech, Azure AI Translator and the Model Context Protocol. I used Claude Code as a coding assistant during the build.
 
 ## License
 

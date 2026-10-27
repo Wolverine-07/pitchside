@@ -27,3 +27,10 @@ Short notes on decisions and dead ends, newest last.
 - Oct 27: Captions felt late, so big moments (goals, chances, saves, cards) now go on screen instantly from verified templates and the agents' caption replaces them; translations run in parallel and the Director skips the model for a single candidate.
 - Oct 27: Commentary was mostly about teams. Added player spotlights (most influential player of the last ten minutes), great saves naming the keeper, and assist credits on goals and chances.
 - Oct 27: Shield crests, jersey-style players with the ball carrier named, a full stats box, a live events feed, a Leave button and a full-time screen with the recap and final league positions.
+- Oct 27, morning: Hindi viewers were sometimes shown English: when the Linguist's translation failed the number check, the fallback was English. Now it retries once with the reasons, then uses Azure AI Translator with a small football glossary ("goal" kept as गोल, not "target"), and English only if all of that fails. The instant captions for goals and chances are translated by Translator too, in under a second. On the live site, 27 of 27 Hindi and 27 of 27 Arabic captions came through in the right script.
+- Oct 27: Eight languages instead of three. Each viewer picks up to three besides English before kick-off, since every language is one more parallel model call per moment. The interface labels follow the language and Arabic reads right to left.
+- Oct 27: Play stalled during long dead-ball gaps (some over a minute of match time with nothing happening). Gaps over 6 seconds are now compressed, which took the demo match from 95 to 72 minutes of playback at 1x.
+- Oct 27: "My metric" view for viewers who follow one number. The Persona leads with it, and the Verifier checks it against the live value.
+- Oct 27: "Why trust this?" on every caption (the Analyst's reasoning, the numbers it used, the path through the agents) and a "How it works" panel with the measured results, including where the team is no better than a single agent.
+- Oct 27: GitHub Actions CI: ruff, pytest in templates mode, frontend build.
+
