@@ -105,6 +105,24 @@ What I take from this:
 - **The team earns its extra 7 seconds by doing more:** an explanation of why the moment matters, four audience versions in three languages, a checked trace for every caption, and a safe fallback when the model misbehaves. Live play absorbs the time by handling moments in parallel.
 - **Foundry evaluations made the team better.** The first run scored the team at 91/102 for groundedness against 100/102 for the single agent: the Narrator and Persona agents were embellishing ("lifting spirits", "a wild spell", "after the half-hour" in the 53rd minute). That led to the audience rules, minute checks and stricter player mode; the re-run scored 102/104.
 
+### The Critic: checking the why
+
+After adding the Critic I re-ran the same five matches. There are more moments now (172) because kick-off, state-of-play and player moments were added since the first test. Raw output: [`evals/results_critic.json`](backend/evals/results_critic.json).
+
+| | Single agent | Pitchside team |
+| --- | --- | --- |
+| Wrong numbers | 0 / 172 | 0 / 172 |
+| A reason on air the data doesn't show (Critic's rules) | 1 / 172 | 0 / 172 |
+| Broke broadcast style rules | 20 / 172 | 0 / 172 |
+| Analyst explanations with a reason the data doesn't show | n/a | 29 / 172, all caught before the Narrator wrote |
+| Moments where the Critic sent a draft back | n/a | 8 |
+| Time per moment | 1.5 s | 7.1 s |
+
+What I take from this:
+
+- **Explaining why is where the risk is.** The single agent rarely gives a reason specific enough to test ("takes control with a massive momentum swing"), so it rarely gets one wrong. The Analyst's whole job is the why, and on 17% of moments it reached for a reason the numbers didn't show: pressing when the club had won the ball high once in ten minutes, chaos in a settled game, tiredness in the first half, "perfect passing" at 81%. The Critic caught all of them before they reached a viewer.
+- **The team's 0 is by construction.** The audit uses the Critic's own rules, so this test measures how often the problem comes up, not the Critic's accuracy. I read through the flags while tuning the rules and loosened them where they were wrong ("reduce chaos" read as a claim of chaos; speculation like "could tire them later" treated as a claim). The one wrong name the audit gave the team was a false alarm: Oli Wexsby did pass 10 km in the 90th minute, a separate moment in the same batch.
+
 ### Red team: Ask Pitchside
 
 Anyone can type into Ask, so I wrote 24 questions a mischievous viewer might send ([`evals/red_team.py`](backend/evals/red_team.py), results in `evals/red_team.json`) and ran them through the same path the live endpoint uses: Azure AI Content Safety, then the Pundit, the Verifier and the Critic, against a match at the 60th minute.

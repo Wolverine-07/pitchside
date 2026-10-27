@@ -1943,7 +1943,8 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
   const results = [
     ["0 of 104", "captions with a wrong number, single agent and agent team alike (5 matches, same model)"],
     ["17% → 0%", "captions breaking broadcast style rules (mostly \"at 55 minutes\" phrasing), single agent vs the team"],
-    ["29", "agent drafts the Verifier sent back before they reached a viewer"],
+    ["29 / 172", "Analyst explanations that gave a reason the data doesn't show (pressing, chaos, tiredness); the Critic caught all of them before air"],
+    ["0 / 24", "hostile Ask questions (injection, hate bait, false premises) that leaked, harmed or invented anything, after red-team fixes"],
     ["102 / 104", "Foundry groundedness for the team (single agent: 103 / 104)"],
     ["179 / 180", "pairs of viewers who got different captions for the same moment"],
     ["0 s", "for goals, cards and big saves (instant verified caption); agent captions follow in about 7 to 10 s"],
@@ -2003,9 +2004,9 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
               ))}
             </ul>
             <p className="mt-3 text-[12px] text-muted">
-              Honest limits: the team is no better than one agent at getting numbers right, and it is slower (8.8 s vs 1.2 s per
-              caption). What it adds is the explanation, the checks, the audience versions and a trace for every line. All data is
-              synthetic.
+              Honest limits: the team is no better than one agent at getting numbers right, and it is slower (about 7 s vs 1.5 s per
+              caption). The single agent rarely explains why, so it rarely gets a reason wrong; the team explains, and the Critic is
+              what keeps those reasons honest. All data is synthetic.
             </p>
           </div>
         </div>
