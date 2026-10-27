@@ -146,3 +146,74 @@ def test_a_clear_screen_shows_in_the_answer_trace(state, model, monkeypatch):
     r = asyncio.run(pundit.screened_answer(state, object(), "Who is winning?"))
     assert r["verified"]
     assert [s["agent"] for s in r["steps"]][:2] == ["safety", "pundit"]
+
+
+def test_numbers_read_while_the_match_plays_on_still_count(monkeypatch):
+    """At 10x a Pundit answer takes about 50 match seconds: a number it reads mid-answer is true."""
+    from pitchside.sim.engine import simulate
+    from pitchside.stats.state import MatchState
+    from pitchside.tools import StatsTools
+
+    events = iter(simulate(16, "comeback"))
+    st = MatchState()
+    for e in events:
+        st.ingest(e)
+        if e["minute"] >= 20:
+            break
+    before = StatsTools(st).fact_sheet([])["metrics"]["KSC"][None]["passes"]
+
+    async def plays_on(agent, prompt):
+        for e in events:  # the match moves on while the model works
+            st.ingest(e)
+            if e["minute"] >= 24:
+                break
+        later = StatsTools(st).fact_sheet([])["metrics"]["KSC"][None]["passes"]
+        assert later != before
+        return {
+            "answer": f"Kingsport have made {later} passes so far and keep probing.",
+            "numbers": [],
+        }
+
+    monkeypatch.setattr(pundit, "Agent", lambda *a, **k: object())
+    monkeypatch.setattr(pundit, "ask", plays_on)
+    assert asyncio.run(pundit.answer(st, object(), "How many passes?"))["verified"]
+
+
+def test_numbers_from_any_window_the_pundit_asked_for_count(state, monkeypatch):
+    from pitchside.agents.verify import allowed_numbers
+    from pitchside.tools import StatsTools
+
+    # A number from a 7-minute window that appears nowhere in the precomputed facts.
+    allowed = allowed_numbers(StatsTools(state).fact_sheet(list(state.names)))
+    window = StatsTools(state).team_metrics("KSC", 420)
+    metric, value = next(
+        (k, v)
+        for k, v in window.items()
+        if isinstance(v, (int, float)) and all(abs(v - a) > 0.51 for a in allowed)
+    )
+    captured = {}
+
+    def agent(client, instructions, name, tools):
+        captured["tools"] = tools
+        return object()
+
+    async def calls_tool_then_answers(agent_, prompt):
+        team_metrics = next(t for t in captured["tools"] if t.name == "team_metrics")
+        await team_metrics.invoke(arguments={"team": "KSC", "window_s": 420})
+        return {
+            "answer": f"Over the last seven minutes Kingsport's {metric} is {value}.",
+            "numbers": [],
+        }
+
+    async def answers_without_reading(agent_, prompt):
+        return {
+            "answer": f"Over the last seven minutes Kingsport's {metric} is {value}.",
+            "numbers": [],
+        }
+
+    monkeypatch.setattr(pundit, "Agent", agent)
+    monkeypatch.setattr(pundit, "ask", calls_tool_then_answers)
+    assert asyncio.run(pundit.answer(state, object(), "Lately?"))["verified"]
+    # The same number without the tool call is invented.
+    monkeypatch.setattr(pundit, "ask", answers_without_reading)
+    assert not asyncio.run(pundit.answer(state, object(), "Lately?"))["verified"]

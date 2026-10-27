@@ -9,6 +9,7 @@ One set of functions, published two ways:
 
 from __future__ import annotations
 
+import functools
 import json
 from collections.abc import Callable
 
@@ -24,6 +25,7 @@ WINDOWS = (60, 90, 180, 300, 600)
 class StatsTools:
     def __init__(self, state: MatchState) -> None:
         self.state = state
+        self.seen: list = []  # every result handed to an agent, so the Verifier can accept exactly those
 
     def match_snapshot(self) -> dict:
         """Score, minute, possession, momentum (-100 away on top .. +100 home on top), 5-minute chaos index and xG."""
@@ -88,7 +90,16 @@ class StatsTools:
         ]
 
     def agent_tools(self) -> list[FunctionTool]:
-        return [tool(f) for f in self.functions()]
+        return [tool(self._recorded(f)) for f in self.functions()]
+
+    def _recorded(self, f: Callable) -> Callable:
+        @functools.wraps(f)
+        def call(*args, **kwargs):
+            result = f(*args, **kwargs)
+            self.seen.append(result)
+            return result
+
+        return call
 
     def fact_sheet(self, players: list[str]) -> dict:
         """Everything the Verifier will accept as true right now."""
