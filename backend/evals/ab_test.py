@@ -7,6 +7,8 @@ workflow. Every caption is then checked by the same deterministic rules:
 - wrong number: a number that matches nothing the stats engine knows at that moment
 - wrong name:   a player named who is not part of the moment
 - wrong time:   end-of-match talk before the 80th minute, or singular club verbs
+- unsupported reason: a reason the numbers don't show ("Riverside press high" with no
+  high regains), judged by the Critic's rules against the stats engine at that moment
 
     uv run python evals/ab_test.py --seeds 16:comeback,3,7,11,21 --out evals/results.json
 """
@@ -21,6 +23,7 @@ from pathlib import Path
 
 from agent_framework import Agent
 
+from pitchside.agents.critic import check_reasons
 from pitchside.agents.llm import clients
 from pitchside.agents.pipeline import ask
 from pitchside.agents.verify import check_context, check_names, check_numbers
@@ -34,7 +37,7 @@ words and one line of at most 22 words explaining why the moment matters.
 Reply with JSON only: {"headline": "...", "line": "..."}"""
 
 
-def audit(text: str, sheet: dict, moment, names: dict[str, str]) -> dict:
+def audit(text: str, sheet: dict, moment, names: dict[str, str], clubs: dict[str, str]) -> dict:
     """Check a caption against everything the stats engine knew (a generous truth set)."""
     truth = {
         "sheet": sheet,
@@ -42,7 +45,10 @@ def audit(text: str, sheet: dict, moment, names: dict[str, str]) -> dict:
         "minute": moment.minute,
     }
     players = {"players": [moment.player] if moment.player else [], **truth}
+    reasons = check_reasons(text, sheet, clubs, moment.type, moment.team, moment.minute)
     return {
+        "unsupported_reason": bool(reasons),
+        "reason_problems": reasons,
         "wrong_number": bool(check_numbers(text, truth)),
         "wrong_name": bool(check_names(text, players, names)),
         "wrong_context": bool(check_context(text, moment.minute)),
@@ -61,7 +67,9 @@ async def run_match(seed: int, storyline: str, fast, deep) -> dict:
         if item["kind"] != "trace":
             continue
         # The pipeline just aired this moment. Ask the single agent about the same moment, same state.
-        job_moment = next(m for m in b.state.moments if m.id == item["trace"]["moment_id"])
+        job_moment = next((m for m in b.state.moments if m.id == item["trace"]["moment_id"]), None)
+        if job_moment is None:
+            continue  # kick-off and state-of-play captions come from the runner, not a flagged moment
         card = cards.get(job_moment.id)
         sheet = StatsTools(b.state).fact_sheet([p for p in [job_moment.player] if p])
         t0 = time.perf_counter()
@@ -84,7 +92,7 @@ async def run_match(seed: int, storyline: str, fast, deep) -> dict:
                 "single": {
                     "text": single_text,
                     "seconds": round(single_s, 1),
-                    **audit(single_text, sheet, job_moment, b.state.names),
+                    **audit(single_text, sheet, job_moment, b.state.names, b.clubs),
                 }
                 if reply
                 else None,
@@ -95,7 +103,13 @@ async def run_match(seed: int, storyline: str, fast, deep) -> dict:
                         s["agent"] == "verifier" and s["status"] == "reject" for s in steps
                     ),
                     "template": any(s["agent"] == "template" for s in steps),
-                    **(audit(card or "", sheet, job_moment, b.state.names)),
+                    "critic_sent_back": sum(
+                        s["agent"] == "critic" and s["status"] == "reject" for s in steps
+                    ),
+                    "critic_flagged_analyst": any(
+                        s["agent"] == "critic" and s["status"] == "corrected" for s in steps
+                    ),
+                    **(audit(card or "", sheet, job_moment, b.state.names, b.clubs)),
                 },
             }
         )
@@ -122,6 +136,7 @@ def summarize(matches: list[dict]) -> dict:
             "wrong_number_pct": rate("single", "wrong_number"),
             "wrong_name_pct": rate("single", "wrong_name"),
             "wrong_context_pct": rate("single", "wrong_context"),
+            "unsupported_reason_pct": rate("single", "unsupported_reason"),
             "any_error_pct": any_err("single"),
             "avg_seconds": round(sum(r["single"]["seconds"] for r in rows) / n, 1) if n else 0,
         },
@@ -129,7 +144,14 @@ def summarize(matches: list[dict]) -> dict:
             "wrong_number_pct": rate("pipeline", "wrong_number"),
             "wrong_name_pct": rate("pipeline", "wrong_name"),
             "wrong_context_pct": rate("pipeline", "wrong_context"),
+            "unsupported_reason_pct": rate("pipeline", "unsupported_reason"),
             "any_error_pct": any_err("pipeline"),
+            "moments_where_critic_sent_a_draft_back": sum(
+                r["pipeline"]["critic_sent_back"] > 0 for r in rows
+            ),
+            "moments_where_critic_flagged_the_analyst": sum(
+                r["pipeline"]["critic_flagged_analyst"] for r in rows
+            ),
             "drafts_caught_by_verifier": sum(r["pipeline"]["drafts_rejected"] for r in rows),
             "template_fallbacks": sum(r["pipeline"]["template"] for r in rows),
             "avg_seconds": round(sum(r["pipeline"]["seconds"] for r in rows) / n, 1) if n else 0,

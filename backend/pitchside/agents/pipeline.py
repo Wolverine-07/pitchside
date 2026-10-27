@@ -1,12 +1,14 @@
 """The agent workflow, built with Microsoft Agent Framework.
 
-    Director ─▶ Analyst ─▶ Narrator ─▶ Verifier ─┬─ pass ──────────▶ Persona ─▶ Linguist ─▶ output
-                              ▲                  ├─ retry (≤ 2) ─▶ Narrator
-                              └──────────────────┘
-                                                 └─ fail twice ──▶ Template ─▶ Persona
+    Director ─▶ Analyst ─▶ Narrator ─▶ Verifier ─▶ Critic ─┬─ pass ──────────▶ Persona ─▶ Linguist ─▶ output
+                              ▲                            ├─ retry (≤ 2) ─▶ Narrator
+                              └────────────────────────────┘
+                                                           └─ fail twice ──▶ Template ─▶ Persona
+    (a Verifier reject skips the Critic and goes straight to retry or Template)
 
 Shared state is the live MatchState. Agents read numbers through the stats
-tools; only the Verifier decides what is true, and it does so in plain code.
+tools; only the Verifier (numbers, names, time) and the Critic (the reasons a
+caption gives) decide what is true, and both do so in plain code.
 Every executor falls back to a deterministic path when its model call fails,
 times out, or the run is templates-only, so the broadcast never waits.
 """
@@ -34,6 +36,7 @@ from pitchside import translator
 from pitchside.stats.state import Moment
 
 from . import prompts
+from .critic import check_reasons
 from .templates import template_line
 from .verify import check_audience, check_citations, check_names, check_numbers, verify
 
@@ -81,6 +84,10 @@ class Job:
     insight: dict | None = None
     cited: list[dict] = field(default_factory=list)
     candidates: list[dict] = field(default_factory=list)
+    passed: list[dict] = field(default_factory=list)  # drafts the Verifier accepted, for the Critic
+    unsupported: list[str] = field(
+        default_factory=list
+    )  # the Analyst's reasons the Critic rejected
     caption: dict | None = None
     attempt: int = 0
     problems: list[str] = field(default_factory=list)
@@ -112,6 +119,17 @@ class Job:
             "cited": self.cited,
             "score": self.sheet["snapshot"]["score"],
         }
+
+    def reasons(self, text: str) -> list[str]:
+        """The Critic's verdict on the reasons a line gives."""
+        return check_reasons(
+            text,
+            self.sheet,
+            self.clubs,
+            self.moment.type,
+            self.moment.team,
+            self.moment.minute,
+        )
 
     def log(self, agent: str, started: float, status: str, note: str = "") -> None:
         self.trace.append(
@@ -245,6 +263,10 @@ class AnalystExec(Executor):
                 f", {len(problems)} dropped" if problems else ""
             )
             job.log("analyst", t0, "ok" if not problems else "corrected", note)
+            t1 = time.perf_counter()
+            job.unsupported = job.reasons(f"{reply.get('claim', '')} {reply.get('why', '')}")
+            if job.unsupported:
+                job.log("critic", t1, "corrected", "; ".join(job.unsupported[:2]))
         else:
             job.insight = {"claim": job.moment.summary, "why": "", "numbers": []}
             job.log("analyst", t0, "fallback" if self.agent else "rule", "moment summary used")
@@ -274,6 +296,8 @@ class NarratorExec(Executor):
                 "telling the story of the half: the result, why it went that way, and one standout. "
                 "You may use up to four numbers."
             )
+        if job.unsupported:
+            prompt["critic_says_these_reasons_are_not_true"] = job.unsupported
         if job.problems:
             prompt["verifier_rejected_previous_draft_because"] = job.problems
         reply = await ask(self.agent, json.dumps(prompt))
@@ -295,6 +319,7 @@ class VerifierExec(Executor):
         t0 = time.perf_counter()
         facts = job.facts()
         problems: list[str] = []
+        job.passed = []
         for cand in job.candidates:
             text = f"{cand.get('headline', '')}. {cand.get('line', '')}"
             recap = job.moment.type.endswith("_recap")
@@ -305,11 +330,14 @@ class VerifierExec(Executor):
             if result:
                 h = cand.get("headline", "").strip()
                 cand["headline"] = h[:1].upper() + h[1:]
-                job.caption, job.status = cand, "pass"
-                job.log("verifier", t0, "pass", f"draft {job.attempt + 1} accepted")
-                await ctx.send_message(job)
-                return
-            problems += result.problems
+                job.passed.append(cand)
+            else:
+                problems += result.problems
+        if job.passed:
+            job.status = "pass"
+            job.log("verifier", t0, "pass", f"draft {job.attempt + 1} accepted")
+            await ctx.send_message(job)
+            return
         job.attempt += 1
         job.problems = sorted(set(problems)) or ["no usable draft"]
         job.status = (
@@ -318,6 +346,32 @@ class VerifierExec(Executor):
             else "fallback"
         )
         job.log("verifier", t0, "reject", "; ".join(job.problems[:3]))
+        await ctx.send_message(job)
+
+
+class CriticExec(Executor):
+    """Checks the reasons a verified draft gives against the stats engine. Plain code."""
+
+    def __init__(self, can_retry: bool) -> None:
+        super().__init__(id="critic")
+        self.can_retry = can_retry
+
+    @handler
+    async def check(self, job: Job, ctx: WorkflowContext[Job]) -> None:
+        t0 = time.perf_counter()
+        problems: list[str] = []
+        for cand in job.passed:
+            found = job.reasons(f"{cand.get('headline', '')}. {cand.get('line', '')}")
+            if not found:
+                job.caption, job.status = cand, "pass"
+                job.log("critic", t0, "pass", "every reason backed by the stats engine")
+                await ctx.send_message(job)
+                return
+            problems += found
+        job.attempt += 1
+        job.problems = sorted(set(problems))
+        job.status = "retry" if self.can_retry and job.attempt < MAX_ATTEMPTS else "fallback"
+        job.log("critic", t0, "reject", "; ".join(job.problems[:2]))
         await ctx.send_message(job)
 
 
@@ -348,8 +402,10 @@ class PersonaExec(Executor):
             return ["no rewrite"]
         text = f"{v.get('headline', '')}. {v.get('line', '')}"
         check = verify(text, job.facts(profile), job.names, live=False)
-        return check.problems or check_audience(
-            text, profile, 4 if job.moment.type.endswith("_recap") else 2
+        return (
+            check.problems
+            or check_audience(text, profile, 4 if job.moment.type.endswith("_recap") else 2)
+            or job.reasons(text)
         )
 
     def _prompt(
@@ -554,6 +610,7 @@ def build_workflow(agents: dict[str, Agent | None]):
     analyst = AnalystExec(agents["analyst"])
     narrator = NarratorExec(agents["narrator"])
     verifier = VerifierExec(can_retry=agents["narrator"] is not None)
+    critic = CriticExec(can_retry=agents["narrator"] is not None)
     template = TemplateExec()
     persona = PersonaExec(agents["persona"])
     linguist = LinguistExec(agents["linguist"])
@@ -570,6 +627,14 @@ def build_workflow(agents: dict[str, Agent | None]):
         .add_edge(narrator, verifier)
         .add_switch_case_edge_group(
             verifier,
+            [
+                Case(lambda j: j.status == "retry", narrator),
+                Case(lambda j: j.status == "fallback", template),
+                Default(critic),
+            ],
+        )
+        .add_switch_case_edge_group(
+            critic,
             [
                 Case(lambda j: j.status == "retry", narrator),
                 Case(lambda j: j.status == "fallback", template),
