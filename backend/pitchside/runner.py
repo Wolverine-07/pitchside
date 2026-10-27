@@ -11,7 +11,7 @@ import asyncio
 import time
 from collections.abc import AsyncIterator, Iterable
 
-from pitchside import overlays, translator
+from pitchside import overlays, translator, whip
 from pitchside.agents.pipeline import (
     Batch,
     EnglishReady,
@@ -69,6 +69,7 @@ class Broadcast:
         self.pending: list[Job] = []
         self.last_batch_ms = 0
         self.quiet_since_ms = 0
+        self.cuts: list[dict] = []  # goals elsewhere waiting for the League Director
 
     @property
     def clubs(self) -> dict[str, str]:
@@ -260,7 +261,17 @@ class Broadcast:
                 before = {r["code"]: r["pos"] for r in self.league.table()}
                 if self.league.apply(f.id, e):
                     changed = True
-                    moments.append(self._league_moment(f, e, before))
+                    moment = self._league_moment(f, e, before)
+                    moments.append(moment)
+                    if e["type"] == "goal":
+                        moved = [
+                            x.team
+                            for x in moment.evidence
+                            if x.metric == "position_before" and x.team in self.state.teams
+                        ]
+                        self.cuts.append(
+                            whip.candidate(f, i, self.league.names, self.league.colors, moved)
+                        )
                 i += 1
             self.cursor[f.id] = i
         return moments, changed
@@ -298,6 +309,13 @@ class Broadcast:
                 elsewhere, league_changed = self._advance_league(until)
                 league_changed |= self.league.apply(self.featured, ev)
                 moments = [*moments, *elsewhere]
+                for cand in self.cuts if ev["type"] != "match_end" else []:
+                    if workers:
+                        asyncio.create_task(self._whip_into(cand, out))
+                    else:
+                        for item in await self._whip(cand):
+                            yield item
+                self.cuts = []
             if ev["type"] == "period_end":
                 moments = [*moments, self._recap_moment(ev)]
             if ev["type"] == "match_start":
@@ -369,6 +387,34 @@ class Broadcast:
                     continue
             for w in workers:
                 w.result()
+
+    async def _whip(self, cand: dict) -> list[dict]:
+        """The League Director's call on a goal elsewhere: a cut to show, and a trace either way."""
+        clubs_now = {t: self.clubs[t] for t in self.state.teams}
+        ctx = whip.featured_context(self.state)
+        cut, reason, how, ms = await whip.decide(
+            self.agents["league_director"], cand, ctx, clubs_now
+        )
+        step = {
+            "agent": "league director",
+            "ms": ms,
+            "status": "ok" if how == "agent" else how,
+            "note": f"{'cut away' if cut else 'stayed'}: {reason}",
+        }
+        trace = {
+            "moment_id": cand["id"],
+            "minute": self.state.minute,
+            "type": "whip_around",
+            "steps": [step],
+        }
+        items: list[dict] = [{"kind": "trace", "trace": trace}]
+        if cut:
+            items.insert(0, {"kind": "cut", "cut": {**cand, "reason": reason, "decided_by": how}})
+        return items
+
+    async def _whip_into(self, cand: dict, out: asyncio.Queue) -> None:
+        for item in await self._whip(cand):
+            out.put_nowait(item)
 
     async def _worker(self, batches: asyncio.Queue, out: asyncio.Queue) -> None:
         while (item := await batches.get()) is not None:

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Evidence, Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
-import { pitchPos, type BallPoint, type Replay } from "./useMatch";
+import { pitchPos, type BallPoint, type Cut, type Replay } from "./useMatch";
 import { dirOf } from "./i18n";
 import { speak } from "./voice";
 
@@ -13,6 +13,7 @@ export const clubColor = (meta: Meta | null, code?: string | null) =>
 
 const MOMENT_LABEL: Record<string, string> = {
   goal: "Goal",
+  whip_around: "Whip-around",
   big_chance: "Big chance",
   pressing_spell: "Pressing spell",
   momentum_swing: "Momentum swing",
@@ -269,6 +270,7 @@ export function Pitch({
   shots = [],
   replay,
   carrier,
+  elsewhere,
   children,
 }: {
   meta: Meta | null;
@@ -280,13 +282,16 @@ export function Pitch({
   shots?: Shot[];
   replay?: Replay | null;
   carrier?: string | null;
+  elsewhere?: Cut | null;
   children?: React.ReactNode;
 }) {
-  const ball = trail.at(-1);
-  const recent = trail.slice(-5);
-  const recentTags = tags
-    .filter((t) => clockMs - t.anchor_t_ms < 20_000)
-    .slice(-2);
+  // While the League Director has cut away, the pitch shows the other ground: no players from this match.
+  const away = elsewhere ?? null;
+  const ball = away ? undefined : trail.at(-1);
+  const recent = away ? [] : trail.slice(-5);
+  const recentTags = away
+    ? []
+    : tags.filter((t) => clockMs - t.anchor_t_ms < 20_000).slice(-2);
   return (
     <div className="pitch-box relative overflow-hidden rounded-xl border border-line shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]">
       <svg viewBox="-3 -3 111 74" className="absolute inset-0 h-full w-full">
@@ -321,7 +326,7 @@ export function Pitch({
           <rect x="-1.6" y="30.34" width="1.6" height="7.32" />
           <rect x="105" y="30.34" width="1.6" height="7.32" />
         </g>
-        {shots.map((s, i) => {
+        {(away ? [] : shots).map((s, i) => {
           const r = 0.7 + s.xg * 2.6; // marker size grows with chance quality
           const color = clubColor(meta, s.team);
           return s.outcome === "goal" ? (
@@ -347,7 +352,7 @@ export function Pitch({
             />
           );
         })}
-        {meta && (
+        {meta && !away && (
           <Players meta={meta} onPitch={onPitch} ball={ball} focus={focus} carrier={carrier} />
         )}
         {recent.slice(1).map((p, i) => (
@@ -412,7 +417,14 @@ export function Pitch({
           pointerEvents="none"
         />
         {replay && <ReplayLayer replay={replay} meta={meta} />}
+        {away && (
+          <ReplayLayer
+            replay={{ id: away.minute, minute: away.minute, team: away.team, player: "", path: away.path, color: away.team === away.home.code ? away.home.color : away.away.color }}
+            meta={meta}
+          />
+        )}
       </svg>
+      {away && <Elsewhere cut={away} />}
       {replay && meta && (
         <div className="rise pointer-events-none absolute left-1/2 top-[4%] -translate-x-1/2 rounded-full bg-[rgba(7,11,20,.86)] px-4 py-1.5 text-[12px] font-semibold uppercase tracking-[0.16em] ring-1 ring-white/10">
           <span className="text-bad">● Replay</span> · {playerName(meta, replay.player)} {replay.minute}'
@@ -1499,12 +1511,44 @@ export function AskPanel({
   );
 }
 
+/* ---------- whip-around ---------- */
+
+function Elsewhere({ cut }: { cut: Cut }) {
+  const side = (s: Cut["home"]) => (
+    <span className="flex items-center gap-1.5">
+      <i className="h-2.5 w-2.5 rounded-full ring-1 ring-white/40" style={{ background: s.color }} />
+      {s.name}
+    </span>
+  );
+  return (
+    <>
+      <div className="rise pointer-events-none absolute left-1/2 top-[4%] flex -translate-x-1/2 flex-col items-center gap-1.5">
+        <div className="rounded-full bg-[rgba(7,11,20,.88)] px-4 py-1.5 text-[12px] font-semibold uppercase tracking-[0.16em] ring-1 ring-white/10">
+          <span className="text-bad">● Live elsewhere</span> · {cut.minute}'
+        </div>
+        <div className="flex items-center gap-3 rounded-xl bg-[rgba(7,11,20,.88)] px-5 py-2.5 text-[18px] font-bold ring-1 ring-white/10">
+          {side(cut.home)}
+          <span className="font-mono">
+            {cut.score[cut.home.code]}–{cut.score[cut.away.code]}
+          </span>
+          {side(cut.away)}
+        </div>
+        <div className="rounded-full bg-[rgba(7,11,20,.8)] px-3 py-1 text-[13px]">Goal: {cut.scorer}</div>
+      </div>
+      <div className="rise pointer-events-none absolute bottom-[4%] left-[3%] max-w-[70%] rounded-lg bg-[rgba(7,11,20,.88)] px-3 py-2 text-[12px] ring-1 ring-white/10">
+        <span className="font-semibold uppercase tracking-[0.12em] text-accent">League Director</span>{" "}
+        <span className="text-soft">{cut.reason}</span>
+      </div>
+    </>
+  );
+}
+
 /* ---------- goal replay ---------- */
 
 function ReplayLayer({ replay, meta }: { replay: Replay; meta: Meta | null }) {
   const pts = replay.path.map((p) => `${p.x.toFixed(1)},${(68 - p.y).toFixed(1)}`);
   const d = `M${pts.join(" L")}`;
-  const color = clubColor(meta, replay.team);
+  const color = replay.color ?? clubColor(meta, replay.team);
   const dur = Math.max(2.5, replay.path.length * 0.55);
   return (
     <g key={replay.id}>
@@ -1892,7 +1936,9 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
     ["Critic", "plain code: checks every reason (pressing, control, chaos, tiredness...) against the stats engine"],
     ["Persona", "one rewrite per viewer type, re-verified"],
     ["Linguist", "translation, re-verified; Azure Translator if it fails twice"],
-    ["Pundit", "answers viewers' questions, numbers verified"],
+    ["Pundit", "answers viewers' questions, numbers and reasons checked; Azure AI Content Safety screens each question"],
+    ["Presenter", "Catch me up: what you missed, in your language, checked like a caption"],
+    ["League Director", "decides when to cut away to a goal at another ground, and says why on screen"],
   ];
   const results = [
     ["0 of 104", "captions with a wrong number, single agent and agent team alike (5 matches, same model)"],
@@ -1933,7 +1979,7 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Eight agents, Microsoft Agent Framework</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Ten agents, Microsoft Agent Framework (two are plain code)</h3>
             <ul className="mt-2 space-y-1 text-[13px]">
               {agents.map(([n, d]) => (
                 <li key={n}>

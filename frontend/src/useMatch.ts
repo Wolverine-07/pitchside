@@ -13,7 +13,22 @@ export type Settings = {
 };
 
 export type BallPoint = { x: number; y: number; team?: string; type: string };
-export type Replay = { id: number; minute: number; team: string; player: string; path: BallPoint[] };
+export type Replay = { id: number; minute: number; team: string; player: string; path: BallPoint[]; color?: string };
+type Side = { code: string; name: string; color: string };
+/** The League Director cutting away to a goal at another ground. */
+export type Cut = {
+  id: string;
+  fixture: string;
+  home: Side;
+  away: Side;
+  score: Record<string, number>;
+  minute: number;
+  team: string;
+  scorer: string;
+  path: BallPoint[];
+  reason: string;
+  decided_by: string;
+};
 
 export type MatchView = {
   status: "idle" | "connecting" | "live" | "done" | "error";
@@ -40,6 +55,7 @@ export type MatchView = {
   replays: Replay[];
   carrier: string | null;
   lastAction: MatchEvent | null;
+  cut: Cut | null;
 };
 
 const EMPTY: MatchView = {
@@ -67,6 +83,7 @@ const EMPTY: MatchView = {
   replays: [],
   carrier: null,
   lastAction: null,
+  cut: null,
 };
 
 const ON_BALL = new Set(["pass", "carry", "dribble", "shot", "clearance", "corner"]);
@@ -203,7 +220,10 @@ function reduce(v: MatchView, item: any): MatchView {
       return { ...v, player: item.player };
     case "pending":
       return { ...v, pending: [...v.pending, ...item.moments] };
+    case "cut":
+      return { ...v, cut: item.cut };
     case "trace":
+      if (item.trace.type === "whip_around") return { ...v, traces: [item.trace, ...v.traces].slice(0, 40) };
       // Every moment in a batch has been handled once any trace for that batch arrives.
       return {
         ...v,

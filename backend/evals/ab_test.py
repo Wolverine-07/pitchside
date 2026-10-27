@@ -109,6 +109,9 @@ async def run_match(seed: int, storyline: str, fast, deep) -> dict:
                     "critic_flagged_analyst": any(
                         s["agent"] == "critic" and s["status"] == "corrected" for s in steps
                     ),
+                    "critic_notes": [
+                        f"{s['status']}: {s['note']}" for s in steps if s["agent"] == "critic"
+                    ],
                     **(audit(card or "", sheet, job_moment, b.state.names, b.clubs)),
                 },
             }

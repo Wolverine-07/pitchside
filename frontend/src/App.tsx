@@ -28,7 +28,7 @@ import {
   momentLabel,
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
-import { type Settings, useMatch } from "./useMatch";
+import { type Cut, type Settings, useMatch } from "./useMatch";
 import { LANGUAGES } from "./i18n";
 import { setVoice as setVoiceOutput, speak, stop as stopVoice } from "./voice";
 
@@ -196,6 +196,15 @@ export default function App() {
     const hide = window.setTimeout(() => setReplayId(null), Math.max(2500, replay.path.length * 550) + 2500);
     return () => window.clearTimeout(hide);
   }, [replay?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The League Director's cut to another ground holds the picture for a few seconds; goal replays here come first.
+  const [cut, setCut] = useState<Cut | null>(null);
+  useEffect(() => {
+    if (!view.cut || replay) return;
+    setCut(view.cut);
+    const back = window.setTimeout(() => setCut(null), 9000);
+    return () => window.clearTimeout(back);
+  }, [view.cut?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const elsewhere = replay ? null : cut;
   const started = view.status !== "idle";
 
   return (
@@ -298,10 +307,11 @@ export default function App() {
                     shots={mode === "analyst" ? view.shots : []}
                     replay={replay}
                     carrier={view.carrier}
+                    elsewhere={elsewhere}
                   >
                     {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
                     {mode === "metric" && <MetricTracker metric={settings.metric} snapshot={view.snapshot} meta={m} />}
-                    {mode === "analyst" && !replay && <LastAction e={view.lastAction} meta={m} />}
+                    {mode === "analyst" && !replay && !elsewhere && <LastAction e={view.lastAction} meta={m} />}
                     <GoalBanner goal={view.lastGoal} meta={m} />
                     {view.status !== "done" && <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />}
                     {view.status === "done" && m && (
@@ -404,7 +414,7 @@ export default function App() {
               )}
             </div>
             <div className="shrink-0 border-t border-line px-4 py-2.5 text-[11px] text-muted">
-              {view.provider === "templates" ? "Template mode: no model connected" : "Eight agents on Microsoft Foundry · every number and reason checked"}
+              {view.provider === "templates" ? "Template mode: no model connected" : "Ten agents on Microsoft Foundry · every number and reason checked"}
             </div>
           </aside>
         </main>

@@ -144,3 +144,32 @@ def test_broadcast_never_goes_quiet():
     assert cards[0]["anchor_t_ms"] == 0
     times = [c["anchor_t_ms"] / 60_000 for c in cards]
     assert max(b - a for a, b in pairwise(times)) < 6
+
+
+def test_league_director_rules_on_every_goal_elsewhere():
+    from pitchside.sim.league import LeagueState, clubs, matchday
+
+    fixtures = matchday(16, "comeback")
+    all_clubs = clubs()
+    league = LeagueState(
+        fixtures,
+        {c: k.name for c, k in all_clubs.items()},
+        {c: k.colors[0] for c, k in all_clubs.items()},
+    )
+    goals_elsewhere = sum(e["type"] == "goal" for f in fixtures[1:] for e in f.events)
+
+    async def go():
+        b = Broadcast(fixtures[0].events, None, ["casual"], ["en"], league=league)
+        return [item async for item in b.run()]
+
+    items = asyncio.run(go())
+    calls = [
+        i["trace"] for i in items if i["kind"] == "trace" and i["trace"]["type"] == "whip_around"
+    ]
+    cuts = [i["cut"] for i in items if i["kind"] == "cut"]
+    assert goals_elsewhere and len(calls) == goals_elsewhere
+    assert cuts and len(cuts) <= len(calls)
+    for c in cuts:
+        # The replay ends in the goal the scoring side attacks, drawn with the home side attacking right.
+        assert c["path"][-1]["x"] == (105 if c["team"] == c["home"]["code"] else 0)
+        assert c["scorer"] and c["reason"]

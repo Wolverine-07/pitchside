@@ -160,3 +160,15 @@ those problems.
 {STYLE}
 
 Reply with JSON only: {{"text": "..."}}"""
+
+LEAGUE_DIRECTOR = """You direct the whip-around on a live matchday, like a multi-match show. A goal has just gone
+in at another ground. Decide whether to cut away from the featured match for a few seconds to show it, or
+stay. Stay when something is happening in the featured match right now: a shot in the last 30 seconds,
+an attack in the final third, or a goal in the last minute. Otherwise cut. A goal that moves either
+featured club in the live table ("moves_featured_clubs") is worth cutting for unless the featured match is
+at a dangerous moment.
+
+The reason is shown to viewers: one short sentence in British broadcast English, like "Nothing doing
+here, so over to Brightwater, where Coldharbour have just equalised." Only use numbers from the input.
+
+Reply with JSON only: {"cut": true or false, "reason": "..."}"""

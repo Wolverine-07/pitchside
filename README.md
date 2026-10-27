@@ -31,6 +31,7 @@ What a viewer gets on top of that:
 - **Half-time and full-time recaps**, written by the same agents from stats-engine facts, for every viewer and language.
 - **Ask Pitchside.** Viewers ask the studio a question ("How is Wexavi playing?", "What does this do to the table?") and a Pundit agent answers from live data, in their language, with every number verified before it is shown. Azure AI Content Safety (Prompt Shields and harm categories) screens every question first, since anyone can type into it.
 - **Catch me up.** Step away and come back, and Pitchside offers to tell you what you missed, in your language and from your side, read aloud if voice is on. The summary is checked like a caption, with a verified template behind it.
+- **Whip-around.** When a goal goes in at another ground, a League Director agent decides whether to cut away to it, weighing what is happening in your match right now (a shot in the last 30 seconds, an attack in the final third, a goal just scored) and whether the result moves your clubs in the table. If it cuts, the pitch shows the other ground and replays the goal's build-up, with the Director's reason on screen; either way the decision is in the Agents tab.
 - **Watch any of the four matchday fixtures.** Every club has its own squad, colours, playing style and home ground; the rest of the league plays around whichever match you pick.
 - **Studio mode.** For broadcasters: no caption airs until a producer approves it, and a producer's own edits are checked by the Verifier against the live match before they go out.
 - **Why trust this?** Every caption in the feed opens to show the Analyst's reasoning, the numbers it rests on (as the stats engine reported them) and its path through the agents: what the Verifier sent back and why, how many audience versions were rewritten, and how each language was produced.
@@ -76,7 +77,9 @@ A rejected caption goes back to the Narrator with the reasons. If it fails twice
 | Verifier | Checks numbers, names, timing and style; sends drafts back | (plain code, cannot fail) |
 | Critic | Checks every reason a caption gives against the stats engine; sends drafts back | (plain code, cannot fail) |
 | Persona | Rewrites for casual, analyst, club, player and metric viewers; one retry with the Verifier's reasons | The verified base line |
-| Pundit | Answers viewers' questions from live data (Ask Pitchside) | An honest "I can't confirm that" |
+| Pundit | Answers viewers' questions from live data (Ask Pitchside), after Azure AI Content Safety screens the question | An honest "I can't confirm that" |
+| Presenter | Catch me up: what a viewer missed, in their language and view | Verified template summary (Azure Translator for other languages) |
+| League Director | Decides when to cut away to a goal at another ground; its on-screen reason is number-checked | Rule: cut unless the featured match is dangerous right now |
 | Linguist | Localizes into each viewer's languages, one parallel call per language; every translation is re-checked for numbers and names, with one retry | Azure AI Translator (football glossary, names protected), then English |
 
 Shared state is one `MatchState` per match. Each live match gets its own key, and the Analyst's MCP client sends it as a header, so tools always answer for the right match. Live matches stream continuously while up to three moments are handled in parallel.

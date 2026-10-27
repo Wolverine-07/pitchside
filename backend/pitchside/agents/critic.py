@@ -17,12 +17,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 SHORT = (90, 180, 300, 600)  # "right now" windows, in seconds
-CHAOTIC = 0.6  # the chaos spike fires at 0.68 and resets at 0.55
-SETTLED = 0.55
+# The broadcast view calls 0.4 to 0.65 "contested"; in that band both "scrappy" and "settled" can be fair.
+CHAOTIC = 0.55
+SETTLED = 0.6
 
 NEGATION = re.compile(
     r"\b(no|not|never|without|lost|lose|loses|losing|can't|cannot|stopped|drops?|fades?|"
-    r"isn't|aren't|hasn't|haven't|little|less)\b[^.]{0,25}$",
+    r"isn't|aren't|hasn't|haven't|little|less|reduc\w*|low|lower\w*|decreas\w*|calm\w*|"
+    # Speculation is not a claim about the match: "could tire later", "may fatigue players".
+    r"may|might|could|would|possibly|potentially|risk\w*|if)\b[^.]{0,25}$",
     re.IGNORECASE,
 )
 FADING = re.compile(
@@ -137,7 +140,7 @@ def _tired(team, sheet, ctx):
 
 
 def _sharp(team, sheet, ctx):
-    need = 100 if ctx.get("perfect") else 85
+    need = 100 if ctx.get("perfect") else 80
     acc = max(_m(sheet, team, w).get("pass_accuracy_pct") or 0 for w in _windows(ctx))
     if acc >= need:
         return True, ""

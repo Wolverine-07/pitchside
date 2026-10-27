@@ -595,13 +595,16 @@ def headline_for(m: Moment, clubs: dict[str, str], names: dict[str, str] | None 
 
 def build_agents(client: Any, tools: list, deep_client: Any = None) -> dict[str, Agent | None]:
     if client is None:
-        return dict.fromkeys(("director", "analyst", "narrator", "persona", "linguist"))
+        return dict.fromkeys(
+            ("director", "analyst", "narrator", "persona", "linguist", "league_director")
+        )
     return {
         "director": Agent(client, prompts.DIRECTOR, name="Director"),
         "analyst": Agent(deep_client or client, prompts.ANALYST, name="Analyst", tools=tools),
         "narrator": Agent(client, prompts.NARRATOR, name="Narrator"),
         "persona": Agent(client, prompts.PERSONA, name="Persona"),
         "linguist": Agent(client, prompts.LINGUIST, name="Linguist"),
+        "league_director": Agent(client, prompts.LEAGUE_DIRECTOR, name="LeagueDirector"),
     }
 
 
