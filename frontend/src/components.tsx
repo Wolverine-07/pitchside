@@ -89,14 +89,16 @@ export function Scoreboard({
   snapshot,
   clock,
   goals = [],
+  compact = false,
 }: {
   meta: Meta | null;
   snapshot: Snapshot | null;
   clock: { minute: number; added?: number; period: number };
   goals?: Goal[];
+  compact?: boolean;
 }) {
   if (!meta)
-    return <div className="h-16 rounded-xl border border-line bg-panel" />;
+    return <div className={`${compact ? "h-[104px]" : "h-16"} rounded-xl border border-line bg-panel`} />;
   const s = snapshot?.score ?? { [meta.home.code]: 0, [meta.away.code]: 0 };
   const half =
     clock.minute === 0
@@ -104,6 +106,35 @@ export function Scoreboard({
       : clock.period === 1
         ? "First half"
         : "Second half";
+  const minute = `${clock.minute}${clock.added ? `+${clock.added}` : ""}'`;
+  // Compact: sits at the top of the stats column on wide screens, so the pitch gets the full height.
+  if (compact)
+    return (
+      <div className="shrink-0 rounded-xl border border-line bg-panel px-4 py-3">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Crest code={meta.home.code} colors={meta.home.colors} size={30} />
+            <span className="text-sm font-semibold">{meta.home.code}</span>
+          </div>
+          <div className="flex items-center gap-2.5 font-mono text-3xl font-medium leading-none">
+            <span>{s[meta.home.code]}</span>
+            <span className="text-muted">:</span>
+            <span>{s[meta.away.code]}</span>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-sm font-semibold">{meta.away.code}</span>
+            <Crest code={meta.away.code} colors={meta.away.colors} size={30} />
+          </div>
+        </div>
+        <div className="mt-1.5 text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+          {half} · <span className="text-soft">{minute}</span>
+        </div>
+        <div className="mt-1 grid grid-cols-2 gap-3">
+          <Scorers meta={meta} goals={goals} team={meta.home.code} align="left" />
+          <Scorers meta={meta} goals={goals} team={meta.away.code} align="right" />
+        </div>
+      </div>
+    );
   return (
     <div className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-xl border border-line bg-panel px-5">
       <div className="flex min-w-0 items-center gap-3">

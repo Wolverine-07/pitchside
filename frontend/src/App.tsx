@@ -281,7 +281,9 @@ export default function App() {
       ) : (
         <main className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section className="flex min-h-0 min-w-0 flex-col gap-3">
-            <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} goals={view.goals} />
+            <div className="xl:hidden">
+              <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} goals={view.goals} />
+            </div>
             <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
               <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
                 <div className="pitch-stage grid min-h-0 flex-1 place-items-center">
@@ -318,8 +320,11 @@ export default function App() {
                   }
                 />
               </div>
-              {/* Stats beside the pitch on wide screens, so the pitch gets the full height; a row underneath otherwise. */}
-              <div className="grid h-[190px] shrink-0 grid-cols-3 gap-3 xl:h-auto xl:w-[300px] xl:grid-cols-1 xl:grid-rows-[minmax(0,0.8fr)_auto_minmax(0,1fr)]">
+              {/* Score and stats beside the pitch on wide screens, so the pitch gets the full height; a row underneath otherwise. */}
+              <div className="grid h-[190px] shrink-0 grid-cols-3 gap-3 xl:h-auto xl:w-[300px] xl:grid-cols-1 xl:grid-rows-[auto_minmax(0,0.8fr)_auto_minmax(0,1fr)]">
+                <div className="hidden xl:block">
+                  <Scoreboard compact meta={m} snapshot={view.snapshot} clock={view.clock} goals={view.goals} />
+                </div>
                 <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} />
                 <MatchStats snapshot={view.snapshot} meta={m} />
                 <LiveEvents feed={view.feed} meta={m} />
