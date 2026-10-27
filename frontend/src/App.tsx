@@ -15,6 +15,7 @@ import {
   LeagueTable,
   LastAction,
   CaptionBar,
+  CatchUp,
   MatchStats,
   METRICS,
   MetricTracker,
@@ -308,17 +309,22 @@ export default function App() {
                     )}
                   </Pitch>
                 </div>
-                <CaptionBar
-                  card={latest}
-                  voice={voice}
-                  lang={lang}
-                  meta={m}
-                  pending={
-                    view.pending.length
-                      ? `Agents writing: ${view.pending.slice(-2).map((p) => `${momentLabel(p.type)} ${p.minute}'`).join(", ")}`
-                      : undefined
-                  }
-                />
+                <CatchUp matchKey={view.matchKey} minute={view.clock.minute} lang={lang} profile={profile} voice={voice}>
+                  {(button) => (
+                    <CaptionBar
+                      card={latest}
+                      voice={voice}
+                      lang={lang}
+                      meta={m}
+                      action={view.status !== "done" ? button : undefined}
+                      pending={
+                        view.pending.length
+                          ? `Agents writing: ${view.pending.slice(-2).map((p) => `${momentLabel(p.type)} ${p.minute}'`).join(", ")}`
+                          : undefined
+                      }
+                    />
+                  )}
+                </CatchUp>
               </div>
               {/* Score and stats beside the pitch on wide screens, so the pitch gets the full height; a row underneath otherwise. */}
               <div className="grid h-[190px] shrink-0 grid-cols-3 gap-3 xl:h-auto xl:w-[300px] xl:grid-cols-1 xl:grid-rows-[auto_minmax(0,0.8fr)_auto_minmax(0,1fr)]">
@@ -398,7 +404,7 @@ export default function App() {
               )}
             </div>
             <div className="shrink-0 border-t border-line px-4 py-2.5 text-[11px] text-muted">
-              {view.provider === "templates" ? "Template mode: no model connected" : "Seven agents on Microsoft Foundry · every number verified"}
+              {view.provider === "templates" ? "Template mode: no model connected" : "Eight agents on Microsoft Foundry · every number and reason checked"}
             </div>
           </aside>
         </main>

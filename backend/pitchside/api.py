@@ -10,6 +10,7 @@ GET  /api/health    provider and version
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import uuid
@@ -22,7 +23,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
-from pitchside import pundit, speech, telemetry
+from pitchside import catchup, pundit, safety, speech, telemetry
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
@@ -79,6 +80,7 @@ def health() -> dict:
         "model": cfg.model,
         "tracing": telemetry._done,
         "speech": speech.enabled(),
+        "content_safety": safety.enabled(),
         "storylines": sorted(STORYLINES),
     }
 
@@ -100,10 +102,38 @@ async def ask_pitchside(body: dict) -> dict:
             "verified": False,
             "steps": [],
         }
-    return await pundit.answer(
+    question = str(body.get("question", ""))[:300]
+    # Content Safety and the Pundit start together; a blocked question cancels the answer unseen.
+    answering = asyncio.create_task(
+        pundit.answer(
+            state, client, question, body.get("lang", "en"), body.get("profile", "casual")
+        )
+    )
+    screened = await safety.screen(question)
+    if not screened["ok"]:
+        answering.cancel()
+        return {
+            "answer": "I'll stick to the football. Ask me about the match, a player or the table.",
+            "verified": False,
+            "blocked": True,
+            "steps": [screened["step"]],
+        }
+    result = await answering
+    if screened["step"]:
+        result["steps"] = [screened["step"], *result["steps"]]
+    return result
+
+
+@app.post("/api/catchup")
+async def catch_up(body: dict) -> dict:
+    """What a viewer missed while they were away, checked like everything else that airs."""
+    state = LIVE.get(body.get("match_key", ""))
+    if state is None:
+        return {"text": "That match isn't live any more.", "verified": False, "steps": []}
+    return await catchup.catch_up(
         state,
-        client,
-        str(body.get("question", "")),
+        clients()["fast"],
+        int(body.get("since_minute") or 0),
         body.get("lang", "en"),
         body.get("profile", "casual"),
     )

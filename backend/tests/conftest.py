@@ -2,6 +2,11 @@
 
 import os
 
-for key in ("AZURE_TRANSLATOR_KEY", "AZURE_SPEECH_KEY", "APPLICATIONINSIGHTS_CONNECTION_STRING"):
+for key in (
+    "AZURE_TRANSLATOR_KEY",
+    "AZURE_SPEECH_KEY",
+    "AZURE_CONTENT_SAFETY_KEY",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING",
+):
     os.environ[key] = ""
 os.environ.setdefault("PITCHSIDE_PROVIDER", "templates")

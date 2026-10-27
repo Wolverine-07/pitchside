@@ -1,4 +1,4 @@
-"""Ask Pitchside: a viewer's question, answered by the Pundit agent and checked by the Verifier."""
+"""Ask Pitchside: a viewer's question, answered by the Pundit agent and checked by the Verifier and the Critic."""
 
 from __future__ import annotations
 
@@ -8,12 +8,17 @@ import time
 from agent_framework import Agent
 
 from pitchside.agents import prompts
+from pitchside.agents.critic import check_reasons
 from pitchside.agents.pipeline import ask
-from pitchside.agents.verify import check_citations, check_names, check_numbers, check_style
+from pitchside.agents.verify import (
+    check_citations,
+    check_language,
+    check_names,
+    check_numbers,
+    check_style,
+)
 from pitchside.stats.state import MatchState
 from pitchside.tools import StatsTools
-
-LANG_NAMES = {"en": "English", "hi": "Hindi", "es": "Spanish"}
 
 
 async def answer(
@@ -25,7 +30,7 @@ async def answer(
     steps: list[dict] = []
     request = {
         "question": question[:300],
-        "answer_in": LANG_NAMES.get(lang, "English"),
+        "answer_in": prompts.LANGUAGES.get(lang, "English"),
         "viewer": profile,
         "match_minute_now": f"{state.minute} of 90",
         "score": state.score_line(),
@@ -38,6 +43,7 @@ async def answer(
         "players": {name: pid for pid, name in state.names.items()},
         "clubs": {r: n for r, n in (getattr(state.league, "names", None) or {}).items()} or None,
     }
+    clubs = {state.meta[s]["code"]: state.meta[s]["name"] for s in ("home", "away")}
     problems: list[str] = []
     for attempt in (1, 2):
         t0 = time.perf_counter()
@@ -67,7 +73,15 @@ async def answer(
             check_numbers(text, facts)
             + check_names(text, {"players": list(state.names)}, state.names)
             + check_style(text, live=False)
+            + check_language(text, lang)
         )
+        # The Critic reads English; answers in other languages get the number and name checks.
+        reasons = check_reasons(text, sheet, clubs, minute=state.minute) if lang == "en" else []
+        if reasons:
+            steps.append(
+                {"agent": "critic", "ms": 0, "status": "reject", "note": "; ".join(reasons[:2])}
+            )
+        problems += reasons
         steps.append(
             {
                 "agent": "verifier",

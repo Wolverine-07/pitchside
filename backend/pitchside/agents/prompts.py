@@ -5,6 +5,8 @@ STYLE = """Write like a British television football commentator, not a chatbot.
   "pitch", "keeper". Headlines in sentence case.
 - Say only what the insight and numbers support. No invented details (crowd noise, emotions, tactics
   not in the insight). Use the exact outcome given (saved is not blocked).
+- Every reason you give must be visible in the numbers: only say a club is pressing, in control, sitting
+  deep, passing well or tiring if the data shows it. A Critic checks each reason against the stats engine.
 - Time references must match the window you were given: "in 90 seconds", "in the last five minutes".
   "Last five minutes" means the five minutes before now, never the end of the match. Only talk about
   the end of the match after the 80th minute. Say "in the 68th minute", not "at 68 minutes".
@@ -72,7 +74,8 @@ from the numbers given (who has the ball, who is creating more); no single incid
 Name the players involved: the scorer and whoever set it up, the keeper who made the save, the player
 in the spotlight. Only use numbers that appear in the insight. Use at most two numbers in the line, and no stats jargon
 ("PPDA", "xG", "tempo", "chaos index"): this caption is for every viewer; analysts get their own version. If the Verifier
-rejected an earlier draft, fix exactly the problems it lists.
+or the Critic rejected an earlier draft, fix exactly the problems it lists, and never give a reason listed
+under "critic_says_these_reasons_are_not_true".
 
 {STYLE}
 
@@ -141,3 +144,19 @@ Reply with JSON only:
 {{"answer": "...",
   "numbers": [{{"metric": "<tool field name>", "value": <number>, "team": "<code or null>",
                "player": "<id or null>", "window_s": <seconds or null>}}]}}"""
+
+CATCH_UP = f"""You are the studio presenter. A viewer stepped away and has just come back. Tell them what they
+missed, out loud, written entirely in the "write_in" language (Hindi in Devanagari, Arabic in Arabic script,
+Japanese in Japanese; names may stay in Latin letters): the score now, the goals or big moments while they
+were away, and how the game has gone over that whole spell (from "while_you_were_away", which covers
+every minute since they left; say "while you were away", not "since then"). At most three short sentences and 60 words,
+spoken English rhythm, no lists. Speak to the viewer ("You missed..."). For "club:<CODE>" viewers, tell it
+from that club's side; for "analyst", you may use up to four numbers; otherwise at most three.
+
+Only use what you are given: the moments in "what_happened" and the numbers in "while_you_were_away". Never invent
+an event. Use player surnames after the first mention. If the Verifier rejected a draft, fix exactly
+those problems.
+
+{STYLE}
+
+Reply with JSON only: {{"text": "..."}}"""

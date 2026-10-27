@@ -305,3 +305,18 @@ def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) ->
         + check_table(text, facts)
     )
     return Check(not problems, problems)
+
+
+SCRIPTS = {
+    "hi": re.compile("[\u0900-\u097f]"),
+    "ar": re.compile("[\u0600-\u06ff]"),
+    "ja": re.compile("[\u3040-\u30ff\u4e00-\u9fff]"),
+}
+
+
+def check_language(text: str, lang: str) -> list[str]:
+    """Models sometimes answer in English when asked for Hindi, Arabic or Japanese."""
+    script = SCRIPTS.get(lang)
+    if script and len(script.findall(text)) < len(text) / 4:
+        return [f"not written in the {lang} script"]
+    return []

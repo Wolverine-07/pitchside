@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Evidence, Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 import { pitchPos, type BallPoint, type Replay } from "./useMatch";
 import { dirOf } from "./i18n";
@@ -433,12 +433,14 @@ export function CaptionBar({
   lang,
   meta,
   pending,
+  action,
 }: {
   card: Overlay | undefined;
   voice: boolean;
   lang: string;
   meta: Meta | null;
   pending?: string;
+  action?: React.ReactNode;
 }) {
   const [stale, setStale] = useState(false);
   useEffect(() => {
@@ -477,6 +479,114 @@ export function CaptionBar({
         <div className="flex flex-1 items-center gap-2 px-4 text-[14px] text-muted">
           <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
           {pending ?? "Commentary appears here from kick-off."}
+        </div>
+      )}
+      {action && <div className="flex shrink-0 items-center pr-3">{action}</div>}
+    </div>
+  );
+}
+
+/* ---------- catch me up ---------- */
+
+type CatchUpState = { since: number; to: number; offer?: boolean; loading?: boolean; text?: string; lang?: string };
+
+/** What you missed, from the agents and checked like any caption. Offered when you come back to the tab. */
+export function CatchUp({
+  matchKey,
+  minute,
+  lang,
+  profile,
+  voice,
+  children,
+}: {
+  matchKey: string | null;
+  minute: number;
+  lang: string;
+  profile: string;
+  voice: boolean;
+  children: (button: React.ReactNode) => React.ReactNode;
+}) {
+  const [state, setState] = useState<CatchUpState | null>(null);
+  const minuteRef = useRef(minute);
+  minuteRef.current = minute;
+  const leftAt = useRef<number | null>(null);
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        leftAt.current = minuteRef.current;
+        return;
+      }
+      const since = leftAt.current;
+      leftAt.current = null;
+      if (since !== null && minuteRef.current - since >= 5) setState({ since, to: minuteRef.current, offer: true });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+  useEffect(() => {
+    if (!state?.text) return;
+    const t = window.setTimeout(() => setState(null), 30000);
+    return () => window.clearTimeout(t);
+  }, [state?.text]);
+
+  const run = async (since: number) => {
+    setState({ since, to: minuteRef.current, loading: true });
+    try {
+      const r = await fetch("/api/catchup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ match_key: matchKey, since_minute: since, lang, profile }),
+      }).then((x) => x.json());
+      setState({ since: r.since ?? since, to: minuteRef.current, text: r.text, lang });
+      if (voice) speak(r.text, lang, true);
+    } catch {
+      setState(null);
+    }
+  };
+
+  const button = (
+    <button
+      onClick={() => run(Math.max(0, minute - 15))}
+      disabled={!matchKey || minute < 3 || !!state?.loading}
+      title="What happened in the last 15 minutes, in your language"
+      className="whitespace-nowrap rounded-lg border border-line px-3 py-1.5 text-[12px] font-medium text-soft hover:border-accent hover:text-white disabled:opacity-40"
+    >
+      Catch me up
+    </button>
+  );
+
+  return (
+    <div className="relative shrink-0">
+      {children(button)}
+      {state && (
+        <div className="rise absolute inset-0 flex overflow-hidden rounded-xl border border-accent/60 bg-panel-2">
+          <div className="w-1.5 shrink-0 bg-accent" />
+          <div className="min-w-0 flex-1 px-4 py-2.5">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
+              <span className="text-accent">Catch-up</span>
+              <span className="font-mono text-muted">
+                {state.since}'–{state.to}'
+              </span>
+              {state.text && <span className="text-good">✓ Checked</span>}
+              <button onClick={() => setState(null)} className="ml-auto text-[13px] normal-case text-muted hover:text-white" aria-label="Close">
+                ✕
+              </button>
+            </div>
+            {state.offer ? (
+              <div className="mt-1.5 flex items-center gap-3 text-[14px]">
+                <span>You were away for {state.to - state.since} minutes.</span>
+                <button onClick={() => run(state.since)} className="rounded-lg bg-accent px-3 py-1 text-[13px] font-semibold text-ink">
+                  Catch me up
+                </button>
+              </div>
+            ) : state.loading ? (
+              <div className="mt-1.5 text-[14px] text-muted">The agents are writing what you missed...</div>
+            ) : (
+              <div dir={dirOf(state.lang ?? "en")} className="mt-0.5 line-clamp-3 text-[14px] leading-snug">
+                {state.text}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -861,7 +971,7 @@ const STEP_TONE: Record<string, string> = {
 export function AgentSummary({ traces }: { traces: Trace[] }) {
   const steps = traces.flatMap((t) => t.steps);
   const rejected = steps.filter(
-    (s) => s.agent === "verifier" && s.status === "reject",
+    (s) => (s.agent === "verifier" || s.agent === "critic") && s.status === "reject",
   ).length;
   const templates = steps.filter((s) => s.agent === "template").length;
   const corrected = steps.filter(
@@ -1254,6 +1364,7 @@ type QA = {
   a?: string;
   verified?: boolean;
   checked?: number;
+  blocked?: boolean;
   pending?: boolean;
 };
 
@@ -1295,7 +1406,7 @@ export function AskPanel({
       setLog((l) =>
         l.map((x) =>
           x.q === q && x.pending
-            ? { q, a: r.answer, verified: r.verified, checked }
+            ? { q, a: r.answer, verified: r.verified, checked, blocked: r.blocked }
             : x,
         ),
       );
@@ -1315,8 +1426,8 @@ export function AskPanel({
     <div className="flex h-full flex-col">
       <div className="text-[13px] font-semibold">Ask the studio</div>
       <div className="mb-3 text-[12px] text-muted">
-        The Pundit agent answers from live match data. Every number is checked
-        before you see it.
+        The Pundit agent answers from live match data. Azure AI Content Safety
+        screens every question, and every number is checked before you see it.
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
         {suggestions.map((s) => (
@@ -1348,9 +1459,11 @@ export function AskPanel({
                   <div
                     className={`mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${x.verified ? "text-good" : "text-warn"}`}
                   >
-                    {x.verified
-                      ? `✓ Verified${x.checked && x.checked > 1 ? " after a rewrite" : ""}`
-                      : "Not verified"}
+                    {x.blocked
+                      ? "Blocked by Azure AI Content Safety"
+                      : x.verified
+                        ? `✓ Verified${x.checked && x.checked > 1 ? " after a rewrite" : ""}`
+                        : "Not verified"}
                   </div>
                 </>
               )}
@@ -1767,7 +1880,7 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
   const stages = [
     ["Ingest", "A simulator streams every pass, tackle, shot and sprint, with positions and speeds. Three other games of the matchday run alongside."],
     ["Interpret", "A deterministic stats engine computes possession, pass difficulty, xG, pressing, momentum, control vs chaos, win probability and the live table, and flags the moments that matter."],
-    ["Explain", "The Analyst agent works out why the moment matters, pulling numbers from the stats engine over MCP. Every number it cites is matched to the engine before it is kept."],
+    ["Explain", "The Analyst agent works out why the moment matters, pulling numbers from the stats engine over MCP. Every number it cites is matched to the engine, and the Critic tests every reason it gives."],
     ["Show", "Each caption becomes a timed overlay (JSON schema in the repo) that any graphics system could draw. This page is one renderer."],
     ["Personalize", "The Persona agent rewrites each caption for a casual fan, an analyst, a club supporter, a player follower and a metric follower; the Linguist translates into up to three languages."],
   ];
@@ -1776,6 +1889,7 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
     ["Analyst", "explains why, with MCP stats tools"],
     ["Narrator", "writes the caption"],
     ["Verifier", "plain code: checks every number, name and minute; two rewrites, then a safe template"],
+    ["Critic", "plain code: checks every reason (pressing, control, chaos, tiredness...) against the stats engine"],
     ["Persona", "one rewrite per viewer type, re-verified"],
     ["Linguist", "translation, re-verified; Azure Translator if it fails twice"],
     ["Pundit", "answers viewers' questions, numbers verified"],
@@ -1819,7 +1933,7 @@ export function ProofModal({ onClose }: { onClose: () => void }) {
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Seven agents, Microsoft Agent Framework</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Eight agents, Microsoft Agent Framework</h3>
             <ul className="mt-2 space-y-1 text-[13px]">
               {agents.map(([n, d]) => (
                 <li key={n}>

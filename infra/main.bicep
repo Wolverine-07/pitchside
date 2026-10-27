@@ -69,6 +69,16 @@ resource translator 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   properties: {}
 }
 
+// Screens every Ask question (Prompt Shields + harm categories) before the Pundit answers. F0 free tier.
+resource safety 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: '${name}-safety'
+  location: location
+  tags: tags
+  kind: 'ContentSafety'
+  sku: { name: 'F0' }
+  properties: { customSubDomainName: '${name}-safety' }
+}
+
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: replace('${name}acr${suffix}', '-', '')
   location: location
@@ -123,6 +133,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'appinsights', value: insights.properties.ConnectionString }
         { name: 'speech-key', value: speech.listKeys().key1 }
         { name: 'translator-key', value: translator.listKeys().key1 }
+        { name: 'safety-key', value: safety.listKeys().key1 }
       ]
     }
     template: {
@@ -141,6 +152,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_SPEECH_KEY', secretRef: 'speech-key' }
             { name: 'AZURE_SPEECH_REGION', value: speechLocation }
             { name: 'AZURE_TRANSLATOR_KEY', secretRef: 'translator-key' }
+            { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: safety.properties.endpoint }
+            { name: 'AZURE_CONTENT_SAFETY_KEY', secretRef: 'safety-key' }
           ]
           probes: [
             {

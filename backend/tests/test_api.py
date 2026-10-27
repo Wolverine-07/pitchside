@@ -38,3 +38,11 @@ def test_studio_edits_are_verified_against_the_live_match():
     assert not bad["ok"] and any("99" in p for p in bad["problems"])
     assert not gone["ok"]
     LIVE.pop("test")
+
+
+def test_catch_up_without_a_model_is_a_verified_template():
+    LIVE["away"] = live_state(75)
+    r = TestClient(app).post("/api/catchup", json={"match_key": "away", "since_minute": 60}).json()
+    assert r["verified"] and r["since"] == 60
+    assert r["text"].startswith("You missed") and "Velino" in r["text"]
+    LIVE.pop("away")
