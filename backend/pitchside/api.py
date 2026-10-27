@@ -11,6 +11,7 @@ GET  /api/health    provider and version
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import uuid
 from pathlib import Path
@@ -23,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
 from pitchside import catchup, pundit, safety, speech, telemetry
+from pitchside.agents import prompts
 from pitchside.agents.llm import clients, config
 from pitchside.runner import Broadcast
 from pitchside.sim.engine import STORYLINES, simulate
@@ -66,8 +68,23 @@ app = FastAPI(title="Pitchside", version="0.1.0", lifespan=lifespan)
 app.mount("/mcp", mcp_app)
 
 
-def _list(raw: str | None, default: str) -> list[str]:
-    return [x.strip() for x in (raw or default).split(",") if x.strip()]
+def _list(raw: str | None, default: str, most: int = 5) -> list[str]:
+    """Comma-separated query values, de-duplicated and capped: every entry costs model calls."""
+    items = [x.strip()[:40] for x in (raw or default).split(",") if x.strip()]
+    return list(dict.fromkeys(items))[:most] or _list(default, default, most)
+
+
+def _langs(raw: str | None) -> list[str]:
+    """English always, plus up to three of the languages Pitchside writes in."""
+    return ["en", *[x for x in _list(raw, "en", 8) if x in prompts.LANGUAGES and x != "en"][:3]]
+
+
+def _number(raw: str | None, default: float, low: float, high: float) -> float:
+    try:
+        value = float(raw) if raw is not None else default
+    except ValueError:
+        return default
+    return default if math.isnan(value) else min(max(value, low), high)
 
 
 @app.get("/api/health")
@@ -119,7 +136,7 @@ async def catch_up(body: dict) -> dict:
     return await catchup.catch_up(
         state,
         clients()["fast"],
-        int(body.get("since_minute") or 0),
+        int(_number(str(body.get("since_minute") or 0), 0, 0, 130)),
         body.get("lang", "en"),
         body.get("profile", "casual"),
     )
@@ -171,6 +188,7 @@ async def speak(text: str, lang: str = "en") -> Response:
 @app.get("/api/meta")
 def match_meta(seed: int = 16, storyline: str = "comeback", fixture: str = "KSC-RVA") -> dict:
     """Clubs, rosters, venue and the league going into the matchday, so viewers can choose before kick-off."""
+    storyline = storyline if storyline in STORYLINES else "none"
     meta = matchday(seed, storyline, fixture)[0].events[0]["data"]
     meta["league"] = league_for([]).snapshot()
     meta["fixtures"] = [{"home": h, "away": a} for h, a in FIXTURES]
@@ -222,7 +240,7 @@ async def broadcast(
 async def overlay_timeline(
     seed: int = 16, storyline: str = "comeback", profiles: str = "casual", langs: str = "en"
 ):
-    async with broadcast(seed, storyline, _list(profiles, "casual"), _list(langs, "en")) as (_, b):
+    async with broadcast(seed, storyline, _list(profiles, "casual"), _langs(langs)) as (_, b):
         return [item["overlay"] async for item in b.run() if item["kind"] == "overlay"]
 
 
@@ -230,10 +248,12 @@ async def overlay_timeline(
 async def live_match(ws: WebSocket) -> None:
     await ws.accept()
     q = ws.query_params
-    seed, storyline = int(q.get("seed", 16)), q.get("storyline", "comeback")
-    speed = float(q.get("speed", 10))
+    seed = int(_number(q.get("seed"), 16, 1, 10_000))
+    storyline = q.get("storyline", "comeback")
+    storyline = storyline if storyline in STORYLINES else "none"
+    speed = _number(q.get("speed"), 10, 0.5, 60)
     profiles = _list(q.get("profiles"), "casual,analyst")
-    langs = _list(q.get("langs"), "en")
+    langs = _langs(q.get("langs"))
     try:
         async with broadcast(seed, storyline, profiles, langs, q.get("fixture", "KSC-RVA")) as (
             key,
