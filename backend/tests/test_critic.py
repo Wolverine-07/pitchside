@@ -64,3 +64,124 @@ def test_template_lines_pass_the_critic(sheets):
     for m, s, names in sheets:
         text = f"{headline_for(m, CLUBS, names)}. {template_line(m, names, CLUBS)}"
         assert check_reasons(text, s, CLUBS, m.type, m.team, m.minute) == [], text
+
+
+def sheet(ksc=None, rva=None, chaos=0.4, momentum=0):
+    """A hand-made fact sheet: the same metrics in every window unless a dict of overrides says otherwise."""
+    base = {"possession_pct": 50, "pass_accuracy_pct": 84, "high_regains": 0, "xg": 0.5, "shots": 4}
+
+    def team(over):
+        return {w: {**base, **(over or {})} for w in (*SHORT, None)}
+
+    return {
+        "snapshot": {"score": {"KSC": 0, "RVA": 0}, "momentum": momentum},
+        "metrics": {"KSC": team(ksc), "RVA": team(rva)},
+        "chaos": dict.fromkeys(SHORT, chaos),
+    }
+
+
+# (caption, sheet where it's true, sheet where it isn't). Every reason the Critic knows, both ways.
+CASES = [
+    ("Kingsport press high.", sheet(ksc={"high_regains": 3}), sheet()),
+    (
+        "Kingsport are in control.",
+        sheet(ksc={"possession_pct": 62}, rva={"possession_pct": 38}),
+        sheet(ksc={"possession_pct": 45}, rva={"possession_pct": 55}),
+    ),
+    ("Kingsport are on top.", sheet(momentum=55), sheet(momentum=-20)),
+    (
+        "Riverside are losing their grip.",
+        sheet(rva={"possession_pct": 44}),
+        sheet(rva={"possession_pct": 60, "pass_accuracy_pct": 88}, chaos=0.3),
+    ),
+    ("It's scrappy and end-to-end.", sheet(chaos=0.7), sheet(chaos=0.3)),
+    ("Kingsport look calm on the ball.", sheet(chaos=0.3), sheet(chaos=0.8)),
+    (
+        "Riverside sit deep.",
+        sheet(rva={"possession_pct": 38}),
+        sheet(rva={"possession_pct": 55}),
+    ),
+    (
+        "Kingsport's passing is crisp.",
+        sheet(ksc={"pass_accuracy_pct": 88}),
+        sheet(ksc={"pass_accuracy_pct": 70}),
+    ),
+    (
+        "Riverside's sloppy passing is costing them.",
+        sheet(rva={"pass_accuracy_pct": 70}),
+        sheet(rva={"pass_accuracy_pct": 90}, chaos=0.3),
+    ),
+    (
+        "Kingsport are creating the better chances.",
+        sheet(ksc={"xg": 1.4}, rva={"xg": 0.3}),
+        sheet(ksc={"xg": 0.2, "shots": 1}, rva={"xg": 1.1, "shots": 6}),
+    ),
+    (
+        "Riverside scored against the run of play.",
+        sheet(rva={"possession_pct": 40}, momentum=30),
+        sheet(rva={"possession_pct": 64}, momentum=-40),
+    ),
+]
+
+
+@pytest.mark.parametrize(("text", "true", "false"), CASES, ids=[c[0] for c in CASES])
+def test_every_reason_is_checked_both_ways(text, true, false):
+    assert check_reasons(text, true, CLUBS) == [], text
+    problems = check_reasons(text, false, CLUBS)
+    assert problems and problems[0].startswith("reason not backed by the data"), text
+
+
+def test_perfect_passing_needs_every_pass():
+    assert check_reasons(
+        "Kingsport's passing was perfect.", sheet(ksc={"pass_accuracy_pct": 92}), CLUBS
+    )
+    assert not check_reasons(
+        "Kingsport's passing was perfect.", sheet(ksc={"pass_accuracy_pct": 100}), CLUBS
+    )
+
+
+def test_tiredness_is_a_late_game_reason_only():
+    assert check_reasons("Riverside look tired.", sheet(), CLUBS, minute=30)
+    assert not check_reasons("Riverside look tired.", sheet(), CLUBS, minute=78)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Kingsport aren't pressing anymore.",
+        "There's no press from Riverside.",
+        "Riverside's press has lost its bite.",
+        "Kingsport could tire later on.",
+        "If Riverside press, Kingsport may struggle.",
+        "Kingsport tried to reduce the chaos.",
+    ],
+)
+def test_denials_fades_and_maybes_are_not_claims(text):
+    assert check_reasons(text, sheet(), CLUBS, minute=20) == [], text
+
+
+def test_clubs_from_other_matches_are_left_alone():
+    assert check_reasons("Ashvale press high at Dunmore.", sheet(), CLUBS) == []
+
+
+def test_a_pressing_spell_moment_backs_its_own_pressing_line():
+    assert not check_reasons(
+        "Kingsport press high.", sheet(), CLUBS, moment_type="pressing_spell", moment_team="KSC"
+    )
+
+
+def test_recaps_may_use_the_whole_half():
+    s = sheet()
+    s["metrics"]["KSC"][None]["high_regains"] = 9
+    s["metrics"]["RVA"][None]["high_regains"] = 2
+    assert check_reasons(
+        "Kingsport pressed well all half.", s, CLUBS
+    )  # not a recap: recent windows only
+    assert not check_reasons(
+        "Kingsport pressed well all half.", s, CLUBS, moment_type="half_time_recap"
+    )
+
+
+def test_each_wrong_reason_is_reported_once():
+    text = "Riverside press, Riverside press again, and Riverside keep pressing."
+    assert len(check_reasons(text, sheet(), CLUBS)) == 1

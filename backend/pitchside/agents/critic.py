@@ -16,6 +16,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from pitchside.agents.verify import CLUB_CODES
+
 SHORT = (90, 180, 300, 600)  # "right now" windows, in seconds
 # The broadcast view calls 0.4 to 0.65 "contested"; in that band both "scrappy" and "settled" can be fair.
 CHAOTIC = 0.55
@@ -269,7 +271,9 @@ REASONS = [
 
 def _club_mentions(text: str, clubs: dict[str, str]) -> list[tuple[int, str]]:
     found = []
-    for code, name in clubs.items():
+    # Every league club counts as a mention, so a line about another match is left to that match.
+    league = {code: town for town, code in CLUB_CODES.items() if code not in clubs}
+    for code, name in {**league, **clubs}.items():
         for alias in {name, name.split()[0], code}:
             for m in re.finditer(rf"\b{re.escape(alias)}\b", text):
                 found.append((m.start(), code))
@@ -318,7 +322,7 @@ def check_reasons(
                 "team": moment_team,
                 "minute": minute,
                 "recap": recap,
-                "perfect": m.group(0).lower().startswith("perfect"),
+                "perfect": "perfect" in m.group(0).lower(),
                 "club": lambda code: clubs.get(code or "", code or "they"),
             }
             if reason.team_needed and team is None:
