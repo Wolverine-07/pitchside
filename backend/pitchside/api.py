@@ -255,5 +255,7 @@ if STATIC.exists():
 
     @app.get("/{path:path}")
     def spa(path: str) -> FileResponse:
-        file = STATIC / path
-        return FileResponse(file if path and file.is_file() else STATIC / "index.html")
+        # Resolve first: an encoded "..%2f" must never reach a file outside the built frontend.
+        file = (STATIC / path).resolve()
+        inside = file.is_relative_to(STATIC.resolve())
+        return FileResponse(file if path and inside and file.is_file() else STATIC / "index.html")

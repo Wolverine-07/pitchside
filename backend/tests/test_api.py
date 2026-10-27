@@ -46,3 +46,22 @@ def test_catch_up_without_a_model_is_a_verified_template():
     assert r["verified"] and r["since"] == 60
     assert r["text"].startswith("You missed") and "Velino" in r["text"]
     LIVE.pop("away")
+
+
+def test_the_page_route_never_serves_files_outside_the_frontend():
+    from pitchside import api
+
+    if not api.STATIC.exists():
+        import pytest
+
+        pytest.skip("frontend not built")
+    c = TestClient(app)
+    for path in [
+        "/..%2f..%2fbackend%2fpyproject.toml",
+        "/%2e%2e/%2e%2e/backend/pyproject.toml",
+        "/..%2f..%2f..%2f..%2f..%2f..%2f..%2fetc%2fhostname",
+        "/..%2f..%2f..%2f..%2f..%2f..%2f..%2fproc%2fself%2fenviron",
+    ]:
+        r = c.get(path)
+        assert r.status_code == 200 and r.text.lstrip().lower().startswith("<!doctype html"), path
+    assert c.get("/favicon.svg").text.startswith("<svg")
