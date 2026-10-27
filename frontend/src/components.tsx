@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Evidence, Goal, League, MatchEvent, Meta, Overlay, PlayerStats, Shot, Snapshot, Trace } from "./types";
 import { pitchPos, type BallPoint, type Replay } from "./useMatch";
-import { dirOf, momentIn, t } from "./i18n";
+import { dirOf } from "./i18n";
 import { speak } from "./voice";
 
 export const clubColor = (meta: Meta | null, code?: string | null) =>
@@ -30,8 +30,8 @@ const MOMENT_LABEL: Record<string, string> = {
 };
 export const isRecap = (o?: Overlay) =>
   !!o && String(o.content.moment_type).endsWith("_recap");
-export const momentLabel = (type: string, lang = "en") =>
-  momentIn(lang, type, MOMENT_LABEL[type] ?? type.replaceAll("_", " "));
+export const momentLabel = (type: string) =>
+  MOMENT_LABEL[type] ?? type.replaceAll("_", " ");
 
 /* ---------- scoreboard ---------- */
 
@@ -392,64 +392,62 @@ export function Pitch({
   );
 }
 
-/* ---------- lower third ---------- */
+/* ---------- subtitle bar ---------- */
 
-/** A slim broadcast lower third: newest card for this viewer, on screen for a few seconds. */
-export function LowerThird({
+/** Commentary under the pitch, like broadcast subtitles: it never covers play. The newest caption
+ * stays until the next one; after a while it dims so a fresh one stands out. */
+export function CaptionBar({
   card,
   voice,
   lang,
   meta,
+  pending,
 }: {
   card: Overlay | undefined;
   voice: boolean;
   lang: string;
   meta: Meta | null;
+  pending?: string;
 }) {
-  const [shown, setShown] = useState<Overlay | undefined>();
-  const timer = useRef<number | undefined>(undefined);
+  const [stale, setStale] = useState(false);
   useEffect(() => {
     if (!card) return;
-    setShown(card);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setShown(undefined), 8000);
+    setStale(false);
+    const t = window.setTimeout(() => setStale(true), 15000);
     if (voice) speak(card.content.body, lang);
+    return () => window.clearTimeout(t);
   }, [card?.overlay_id]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!shown) return null;
-  const c = shown.content;
-  const color = clubColor(meta, c.team);
+  const c = card?.content;
+  const color = clubColor(meta, c?.team);
   return (
-    <div
-      key={shown.overlay_id}
-      className="rise pointer-events-none absolute bottom-[4%] left-[3%] w-[min(560px,64%)] overflow-hidden rounded-lg bg-[rgba(7,11,20,.86)] shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
-    >
-      <div className="flex">
-        <div className="w-1 shrink-0" style={{ background: color }} />
-        <div className="min-w-0 px-3.5 py-2.5">
+    <div className="flex h-[100px] shrink-0 overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="w-1.5 shrink-0 transition-colors" style={{ background: c ? color : "var(--color-line)" }} />
+      {c ? (
+        <div key={card!.overlay_id} className={`rise min-w-0 flex-1 px-4 py-2.5 transition-opacity duration-700 ${stale ? "opacity-60" : ""}`}>
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
-            <span style={{ color }}>{momentLabel(c.moment_type, lang)}</span>
-            <span className="text-muted">·</span>
+            <span className="font-mono text-muted">{Math.floor(card!.anchor_t_ms / 60000) + 1}'</span>
+            <span style={{ color }}>{momentLabel(c.moment_type)}</span>
             <span className="flex items-center gap-1 text-good">
-              <svg
-                viewBox="0 0 12 12"
-                className="h-2.5 w-2.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 6.5 5 9l5-6" />
               </svg>
-              {t(lang, "verified")}
+              Verified
             </span>
+            {pending && <span className="ml-auto normal-case tracking-normal text-muted">{pending}</span>}
           </div>
-          <div dir={dirOf(c.lang)} className="mt-0.5 truncate text-[15px] font-semibold leading-snug">
+          <div dir={dirOf(c.lang)} className="mt-0.5 truncate text-[16px] font-semibold leading-snug">
             {c.headline}
           </div>
-          <div dir={dirOf(c.lang)} className="line-clamp-2 text-[13px] leading-snug text-soft">
+          <div dir={dirOf(c.lang)} className="line-clamp-2 text-[14px] leading-snug text-soft">
             {c.body}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-1 items-center gap-2 px-4 text-[14px] text-muted">
+          <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
+          {pending ?? "Commentary appears here from kick-off."}
+        </div>
+      )}
     </div>
   );
 }
@@ -485,13 +483,11 @@ export function Momentum({
   meta,
   goals = [],
   chaos,
-  lang = "en",
 }: {
   data: { t: number; v: number }[];
   meta: Meta | null;
   goals?: Goal[];
   chaos?: number;
-  lang?: string;
 }) {
   const w = 600,
     h = 64;
@@ -510,7 +506,7 @@ export function Momentum({
   const away = clubColor(meta, meta?.away.code);
   return (
     <Panel
-      title={t(lang, "momentum")}
+      title="Momentum"
       right={
         <span className="flex gap-3 normal-case tracking-normal">
           <span className="flex items-center gap-1.5">
@@ -585,13 +581,13 @@ export function Momentum({
       </div>
       {chaos !== undefined && (
         <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted">
-          <span>{t(lang, "control")}</span>
+          <span>Control</span>
           <div className="relative h-1 flex-1 rounded-full bg-gradient-to-r from-good via-warn to-bad">
             <div className="absolute -top-1 h-3 w-1 rounded bg-white shadow transition-all duration-700" style={{ left: `calc(${chaos * 100}% - 2px)` }} />
           </div>
-          <span>{t(lang, "chaos")}</span>
+          <span>Chaos</span>
           <span className={`w-24 text-right font-semibold ${chaos >= 0.65 ? "text-bad" : chaos <= 0.4 ? "text-good" : "text-warn"}`}>
-            {t(lang, chaos >= 0.65 ? "chaotic" : chaos <= 0.4 ? "controlled" : "contested")}
+            {chaos >= 0.65 ? "Chaotic" : chaos <= 0.4 ? "Controlled" : "Contested"}
           </span>
         </div>
       )}
@@ -601,26 +597,26 @@ export function Momentum({
 
 
 
-export function MatchStats({ snapshot, meta, lang = "en" }: { snapshot: Snapshot | null; meta: Meta | null; lang?: string }) {
+export function MatchStats({ snapshot, meta }: { snapshot: Snapshot | null; meta: Meta | null }) {
   if (!snapshot || !meta)
     return (
-      <Panel title={t(lang, "matchStats")}>
-        <div className="text-sm text-muted">{t(lang, "waiting")}</div>
+      <Panel title="Match stats">
+        <div className="text-sm text-muted">Waiting for kick-off</div>
       </Panel>
     );
   const h = snapshot.teams?.[meta.home.code];
   const a = snapshot.teams?.[meta.away.code];
   const rows: [string, number, number, ((v: number) => string)?][] = [
-    [t(lang, "possession"), snapshot.possession_pct[meta.home.code], snapshot.possession_pct[meta.away.code], (v) => `${v}%`],
-    [t(lang, "shots"), h?.shots ?? 0, a?.shots ?? 0],
-    [t(lang, "xg"), snapshot.xg[meta.home.code], snapshot.xg[meta.away.code], (v) => v.toFixed(2)],
-    [t(lang, "passAccuracy"), h?.pass_accuracy_pct ?? 0, a?.pass_accuracy_pct ?? 0, (v) => `${v}%`],
-    [t(lang, "corners"), h?.corners ?? 0, a?.corners ?? 0],
-    [t(lang, "fouls"), h?.fouls ?? 0, a?.fouls ?? 0],
+    ["Possession", snapshot.possession_pct[meta.home.code], snapshot.possession_pct[meta.away.code], (v) => `${v}%`],
+    ["Shots (on target)", h?.shots ?? 0, a?.shots ?? 0],
+    ["Expected goals", snapshot.xg[meta.home.code], snapshot.xg[meta.away.code], (v) => v.toFixed(2)],
+    ["Pass accuracy", h?.pass_accuracy_pct ?? 0, a?.pass_accuracy_pct ?? 0, (v) => `${v}%`],
+    ["Corners", h?.corners ?? 0, a?.corners ?? 0],
+    ["Fouls", h?.fouls ?? 0, a?.fouls ?? 0],
   ];
   const onTarget = [h?.on_target ?? 0, a?.on_target ?? 0];
   return (
-    <Panel title={t(lang, "matchStats")} right={snapshot.win_probability_pct && <WinChip p={snapshot.win_probability_pct} meta={meta} />}>
+    <Panel title="Match stats" right={snapshot.win_probability_pct && <WinChip p={snapshot.win_probability_pct} meta={meta} />}>
       <div className="space-y-[5px]">
         {rows.map(([label, hv, av, fmt], i) => {
           const total = hv + av || 1;
@@ -697,13 +693,11 @@ export function CommentaryFeed({
   meta,
   liveId,
   traces = [],
-  lang = "en",
 }: {
   cards: Overlay[];
   meta: Meta | null;
   liveId?: string;
   traces?: Trace[];
-  lang?: string;
 }) {
   if (!cards.length)
     return (
@@ -724,7 +718,7 @@ export function CommentaryFeed({
                 {minute}'
               </span>
               <span style={{ color }}>
-                {momentLabel(c.content.moment_type, lang)}
+                {momentLabel(c.content.moment_type)}
               </span>
               {c.provenance.fallback && (
                 <span className="text-warn">{(c.provenance as any).fast ? "instant" : "template"}</span>
@@ -736,7 +730,7 @@ export function CommentaryFeed({
             <div dir={dirOf(c.content.lang)} className="mt-0.5 text-[13px] leading-snug text-soft">
               {c.content.body}
             </div>
-            <WhyTrust card={c} meta={meta} trace={traces.find((x) => x.moment_id === c.moment_id)} lang={lang} />
+            <WhyTrust card={c} meta={meta} trace={traces.find((x) => x.moment_id === c.moment_id)} />
           </li>
         );
       })}
@@ -745,7 +739,7 @@ export function CommentaryFeed({
 }
 
 /** "Why trust this?": the facts behind one caption and every check it passed on the way to air. */
-function WhyTrust({ card, meta, trace, lang }: { card: Overlay; meta: Meta | null; trace?: Trace; lang: string }) {
+function WhyTrust({ card, meta, trace }: { card: Overlay; meta: Meta | null; trace?: Trace }) {
   const c = card.content;
   const why = (c.why ?? {}) as { claim?: string; reason?: string; cited?: Evidence[] };
   const facts = [...(why.cited ?? []), ...((c.evidence ?? []) as Evidence[])];
@@ -765,7 +759,7 @@ function WhyTrust({ card, meta, trace, lang }: { card: Overlay; meta: Meta | nul
         <svg viewBox="0 0 12 12" className="h-3 w-3 transition-transform group-open:rotate-90" fill="currentColor">
           <path d="M4 2.5 8 6l-4 3.5z" />
         </svg>
-        {t(lang, "why")}
+        Why trust this?
       </summary>
       <div className="mt-2 space-y-2 rounded-md border border-line bg-ink/60 p-2.5">
         {why.claim && (
@@ -1190,7 +1184,7 @@ export function RecapCard({
     <div className="rise absolute inset-0 grid place-items-center bg-black/55 backdrop-blur-[2px]">
       <div className="w-[min(620px,86%)] overflow-hidden rounded-xl bg-[rgba(7,11,20,.94)] shadow-2xl ring-1 ring-white/10">
         <div className="flex items-center justify-between border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
-          <span className="text-warn">{momentLabel(c.moment_type, lang)}</span>
+          <span className="text-warn">{momentLabel(c.moment_type)}</span>
           <span className="flex items-center gap-1 text-good">
             <svg
               viewBox="0 0 12 12"
@@ -1201,7 +1195,7 @@ export function RecapCard({
             >
               <path d="M2 6.5 5 9l5-6" />
             </svg>
-            {t(lang, "verified")}
+            Verified
           </span>
         </div>
         <div className="flex items-center justify-center gap-5 px-5 pt-5">
@@ -1552,11 +1546,11 @@ function eventText(e: MatchEvent, meta: Meta): { icon: string; text: string } | 
   }
 }
 
-export function LiveEvents({ feed, meta, lang = "en" }: { feed: MatchEvent[]; meta: Meta | null; lang?: string }) {
+export function LiveEvents({ feed, meta }: { feed: MatchEvent[]; meta: Meta | null }) {
   return (
-    <Panel title={t(lang, "liveEvents")}>
+    <Panel title="Live events">
       {!meta || !feed.length ? (
-        <div className="text-sm text-muted">{t(lang, "waiting")}</div>
+        <div className="text-sm text-muted">Waiting for kick-off</div>
       ) : (
         <ol className="h-full space-y-1 overflow-hidden">
           {feed.slice(0, 7).map((e) => {
@@ -1585,21 +1579,19 @@ export function FullTime({
   league,
   recap,
   onLeave,
-  lang = "en",
 }: {
   meta: Meta;
   snapshot: Snapshot | null;
   league: League | null;
   recap: Overlay | undefined;
   onLeave: () => void;
-  lang?: string;
 }) {
   const s = snapshot?.score ?? {};
   const pos = (code: string) => league?.table.find((r) => r.code === code);
   return (
     <div className="rise absolute inset-0 z-10 grid place-items-center bg-black/65 backdrop-blur-sm">
       <div className="w-[min(640px,90%)] rounded-2xl bg-[rgba(7,11,20,.96)] p-6 shadow-2xl ring-1 ring-white/10">
-        <div className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">{t(lang, "fullTime")}</div>
+        <div className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-warn">Full-time</div>
         <div className="mt-3 flex items-center justify-center gap-5">
           <Crest code={meta.home.code} colors={meta.home.colors} size={44} />
           <span className="font-mono text-5xl">
@@ -1629,7 +1621,7 @@ export function FullTime({
           </div>
         )}
         <button onClick={onLeave} className="mt-5 w-full rounded-xl bg-accent py-2.5 font-semibold text-ink">
-          {t(lang, "anotherMatch")}
+          Watch another match
         </button>
       </div>
     </div>

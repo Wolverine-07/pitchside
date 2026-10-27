@@ -23,7 +23,7 @@ One pipeline, five stages, as the challenge asks:
 2. **Interpret.** A deterministic stats engine turns them into live numbers: possession, pass difficulty, xG, momentum, pressing intensity (PPDA), tempo, a control vs chaos index and a live win probability. It flags candidate moments with a significance score and the evidence behind each one.
 3. **Explain.** Agents work out why a moment matters and back it up with numbers they fetch through MCP tools, including the live league table.
 4. **Render.** Every insight becomes a timed overlay object ([schema](schemas/overlay.schema.json)) that a broadcast graphics system could draw over a live feed. The React app is one renderer.
-5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club, a chosen player and a viewer who follows one stat (possession, chance quality, shots, pressing or win probability). Each viewer picks up to three languages besides English (Hindi, Spanish, French, Portuguese, Arabic, German, Japanese); the interface follows the language, Arabic reads right to left, and Azure AI Speech reads captions aloud in a native neural voice.
+5. **Personalize.** The same insight is rewritten for casual fans, analysts, a chosen club, a chosen player and a viewer who follows one stat (possession, chance quality, shots, pressing or win probability). Each viewer picks up to three languages besides English (Hindi, Spanish, French, Portuguese, Arabic, German, Japanese); captions, voice and Ask answers come in that language (Arabic right to left) while the interface stays in English, and Azure AI Speech reads captions aloud in a native neural voice.
 
 What a viewer gets on top of that:
 

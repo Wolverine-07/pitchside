@@ -14,7 +14,7 @@ import {
   RecapCard,
   LeagueTable,
   LastAction,
-  LowerThird,
+  CaptionBar,
   MatchStats,
   METRICS,
   MetricTracker,
@@ -28,15 +28,16 @@ import {
 } from "./components";
 import type { Lang, Meta, Mode } from "./types";
 import { type Settings, useMatch } from "./useMatch";
-import { LANGUAGES, t } from "./i18n";
+import { LANGUAGES } from "./i18n";
 import { setVoice as setVoiceOutput, speak, stop as stopVoice } from "./voice";
 
-const modes = (lang: string): { id: Mode; label: string }[] => [
-  { id: "casual", label: t(lang, "casual") },
-  { id: "analyst", label: t(lang, "analyst") },
-  { id: "club", label: t(lang, "myClub") },
-  { id: "player", label: t(lang, "myPlayer") },
-  { id: "metric", label: t(lang, "myMetric") },
+// The interface stays in English; the commentary language only changes what the agents say.
+const MODES: { id: Mode; label: string }[] = [
+  { id: "casual", label: "Casual" },
+  { id: "analyst", label: "Analyst" },
+  { id: "club", label: "My club" },
+  { id: "player", label: "My player" },
+  { id: "metric", label: "My metric" },
 ];
 // Playback lengths for the demo match (stoppages are shortened, so 1x is about 72 minutes).
 const SPEEDS: Record<number, string> = {
@@ -56,7 +57,7 @@ function Segmented<T extends string>({ items, value, onChange, label }: { items:
           <button
             key={x.id}
             onClick={() => onChange(x.id)}
-            className={`rounded-md px-3 py-1 text-[13px] font-medium transition-colors ${value === x.id ? "bg-accent text-ink" : "text-soft hover:text-white"}`}
+            className={`whitespace-nowrap rounded-md px-3 py-1 text-[13px] font-medium transition-colors ${value === x.id ? "bg-accent text-ink" : "text-soft hover:text-white"}`}
           >
             {x.label}
           </button>
@@ -201,7 +202,7 @@ export default function App() {
       <header className="flex h-14 shrink-0 items-center gap-5 border-b border-line bg-ink/70 px-5 backdrop-blur">
         <Logo />
         {m && (
-          <div className="hidden min-w-0 border-l border-line pl-5 lg:block">
+          <div className="hidden min-w-0 border-l border-line pl-5 min-[1600px]:block">
             <div className="truncate text-[13px] font-semibold">
               {m.home.name} v {m.away.name}
             </div>
@@ -210,9 +211,9 @@ export default function App() {
         )}
         {started && (
           <div className="ml-auto flex items-center gap-4">
-            <Segmented label={t(lang, "view")} items={modes(lang)} value={mode} onChange={setMode} />
+            <Segmented label="View" items={MODES} value={mode} onChange={setMode} />
             <Segmented
-              label={t(lang, "language")}
+              label="Commentary"
               items={LANGUAGES.filter((l) => settings.langs.includes(l.id)).map((l) => ({ id: l.id as Lang, label: l.short }))}
               value={lang}
               onChange={setLang}
@@ -222,21 +223,21 @@ export default function App() {
                 setStudio((s) => !s);
                 setTab(studio ? "commentary" : "producer");
               }}
-              className={`rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${studio ? "border-warn bg-warn/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
+              className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${studio ? "border-warn bg-warn/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
               title="Studio mode: approve or edit every caption before it airs"
             >
-              {t(lang, "studio")}
+              Studio
             </button>
             <button
               onClick={() => setVoice((v) => !v)}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${voice ? "border-accent bg-accent/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
+              className={`flex items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${voice ? "border-accent bg-accent/15 text-white" : "border-line bg-panel text-soft hover:text-white"}`}
               title="Read captions aloud with Azure AI Speech"
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
                 <path d="M4 8h3l4-3v10l-4-3H4z" />
                 {voice && <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5.5a6.5 6.5 0 0 1 0 9" />}
               </svg>
-              {t(lang, "voice")}
+              Voice
             </button>
             <button
               onClick={() => {
@@ -246,16 +247,16 @@ export default function App() {
                   leave();
                 }
               }}
-              className="rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:border-bad hover:text-white"
+              className="whitespace-nowrap rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:border-bad hover:text-white"
               title="Leave this match and pick another"
             >
-              {t(lang, "leave")}
+              Leave
             </button>
             <div className="flex items-center gap-2 border-l border-line pl-4 text-[12px]">
               {view.status === "live" ? (
                 <span className="flex items-center gap-1.5 font-semibold text-bad">
                   <i className="live-dot h-2 w-2 rounded-full bg-bad" />
-                  {t(lang, "live")}
+                  LIVE
                 </span>
               ) : (
                 <span className="capitalize text-muted">{view.status}</span>
@@ -265,10 +266,10 @@ export default function App() {
         )}
         <button
           onClick={() => setProof(true)}
-          className={`${started ? "" : "ml-auto "}rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:text-white`}
+          className={`${started ? "" : "ml-auto "}whitespace-nowrap rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] font-medium text-soft hover:text-white`}
           title="How the agents work and what was measured"
         >
-          {t(lang, "howItWorks")}
+          How it works
         </button>
       </header>
       {proof && <ProofModal onClose={() => setProof(false)} />}
@@ -278,36 +279,51 @@ export default function App() {
       {!started ? (
         <Setup meta={meta} settings={settings} setSettings={setSettings} onStart={() => start(settings)} />
       ) : (
-        <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-          <section className="flex min-h-0 flex-col gap-3">
+        <main className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="flex min-h-0 min-w-0 flex-col gap-3">
             <Scoreboard meta={m} snapshot={view.snapshot} clock={view.clock} goals={view.goals} />
-            <div className="pitch-stage grid min-h-0 flex-1 place-items-center">
-              <Pitch
-                meta={m}
-                trail={view.trail}
-                tags={view.tags}
-                clockMs={view.clock.t_ms}
-                onPitch={view.onPitch}
-                focus={mode === "player" ? settings.player : undefined}
-                shots={mode === "analyst" ? view.shots : []}
-                replay={replay}
-                carrier={view.carrier}
-              >
-                <LowerThird card={latest} voice={voice} lang={lang} meta={m} />
-                {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
-                {mode === "metric" && <MetricTracker metric={settings.metric} snapshot={view.snapshot} meta={m} />}
-                {mode === "analyst" && !replay && <LastAction e={view.lastAction} meta={m} />}
-                <GoalBanner goal={view.lastGoal} meta={m} />
-                {view.status !== "done" && <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />}
-                {view.status === "done" && m && (
-                  <FullTime meta={m} snapshot={view.snapshot} league={view.league} recap={latestRecap} onLeave={leave} lang={lang} />
-                )}
-              </Pitch>
-            </div>
-            <div className="grid h-[200px] shrink-0 grid-cols-[minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,1.2fr)] gap-3">
-              <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} lang={lang} />
-              <MatchStats snapshot={view.snapshot} meta={m} lang={lang} />
-              <LiveEvents feed={view.feed} meta={m} lang={lang} />
+            <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+                <div className="pitch-stage grid min-h-0 flex-1 place-items-center">
+                  <Pitch
+                    meta={m}
+                    trail={view.trail}
+                    tags={view.tags}
+                    clockMs={view.clock.t_ms}
+                    onPitch={view.onPitch}
+                    focus={mode === "player" ? settings.player : undefined}
+                    shots={mode === "analyst" ? view.shots : []}
+                    replay={replay}
+                    carrier={view.carrier}
+                  >
+                    {mode === "player" && <PlayerCard stats={view.player} meta={m} />}
+                    {mode === "metric" && <MetricTracker metric={settings.metric} snapshot={view.snapshot} meta={m} />}
+                    {mode === "analyst" && !replay && <LastAction e={view.lastAction} meta={m} />}
+                    <GoalBanner goal={view.lastGoal} meta={m} />
+                    {view.status !== "done" && <RecapCard card={latestRecap} meta={m} voice={voice} lang={lang} />}
+                    {view.status === "done" && m && (
+                      <FullTime meta={m} snapshot={view.snapshot} league={view.league} recap={latestRecap} onLeave={leave} />
+                    )}
+                  </Pitch>
+                </div>
+                <CaptionBar
+                  card={latest}
+                  voice={voice}
+                  lang={lang}
+                  meta={m}
+                  pending={
+                    view.pending.length
+                      ? `Agents writing: ${view.pending.slice(-2).map((p) => `${momentLabel(p.type)} ${p.minute}'`).join(", ")}`
+                      : undefined
+                  }
+                />
+              </div>
+              {/* Stats beside the pitch on wide screens, so the pitch gets the full height; a row underneath otherwise. */}
+              <div className="grid h-[190px] shrink-0 grid-cols-3 gap-3 xl:h-auto xl:w-[300px] xl:grid-cols-1 xl:grid-rows-[minmax(0,0.8fr)_auto_minmax(0,1fr)]">
+                <Momentum data={view.momentum} meta={m} goals={view.goals} chaos={view.snapshot?.chaos_5min} />
+                <MatchStats snapshot={view.snapshot} meta={m} />
+                <LiveEvents feed={view.feed} meta={m} />
+              </div>
             </div>
           </section>
 
@@ -315,11 +331,11 @@ export default function App() {
             <div className="flex shrink-0 gap-1 border-b border-line p-1.5">
               {(
                 [
-                  ...(studio ? ([["producer", t(lang, "producer"), awaiting]] as const) : []),
-                  ["commentary", t(lang, "commentary"), myCards.length],
-                  ["ask", t(lang, "ask"), null],
-                  ["agents", t(lang, "agents"), view.traces.length],
-                  ["league", t(lang, "league"), view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
+                  ...(studio ? ([["producer", "Producer", awaiting]] as const) : []),
+                  ["commentary", "Commentary", myCards.length],
+                  ["ask", "Ask", null],
+                  ["agents", "Agents", view.traces.length],
+                  ["league", "League", view.league?.scores.reduce((a, s) => a + s.home_goals + s.away_goals, 0) ?? 0],
                 ] as const
               ).map(([id, label, n]) => (
                 <button
@@ -332,12 +348,6 @@ export default function App() {
                 </button>
               ))}
             </div>
-            {view.pending.length > 0 && (
-              <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2 text-[12px] text-soft">
-                <i className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                {t(lang, "agentsWriting")}: {view.pending.slice(-2).map((p) => `${momentLabel(p.type, lang)} ${p.minute}'`).join(", ")}
-              </div>
-            )}
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {tab === "producer" ? (
                 <ProducerQueue
@@ -363,7 +373,7 @@ export default function App() {
                       ))}
                     </div>
                   )}
-                  <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} traces={view.traces} lang={lang} />
+                  <CommentaryFeed cards={myCards} meta={m} liveId={latest?.overlay_id} traces={view.traces} />
                 </>
               ) : tab === "ask" ? (
                 <AskPanel
