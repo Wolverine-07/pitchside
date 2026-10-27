@@ -266,6 +266,34 @@ def check_audience(text: str, profile: str, max_numbers: int = 2) -> list[str]:
     return problems
 
 
+TOP_OF_TABLE = re.compile(
+    r"\b(leads?|leading|tops?|topping|top of|summit of|on top of) the (table|league|standings)\b",
+    re.IGNORECASE,
+)
+
+
+def _positions(facts) -> set:
+    """Every live table position the facts mention."""
+    found = set()
+    if isinstance(facts, dict):
+        if facts.get("metric") == "live_position":
+            found.add(facts.get("value"))
+        for v in facts.values():
+            found |= _positions(v)
+    elif isinstance(facts, list):
+        for v in facts:
+            found |= _positions(v)
+    return found
+
+
+def check_table(text: str, facts: dict) -> list[str]:
+    """'Lead the table' is only true for whoever is 1st."""
+    m = TOP_OF_TABLE.search(text)
+    if m and 1 not in _positions(facts):
+        return [f"'{m.group(0)}' but no club in the facts is 1st"]
+    return []
+
+
 def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) -> Check:
     moment = facts.get("moment")
     minute = moment.get("minute") if isinstance(moment, dict) else None
@@ -274,5 +302,6 @@ def verify(text: str, facts: dict, roster: dict[str, str], live: bool = True) ->
         + check_names(text, facts, roster)
         + check_style(text, live)
         + check_context(text, minute, _minutes_in(facts))
+        + check_table(text, facts)
     )
     return Check(not problems, problems)

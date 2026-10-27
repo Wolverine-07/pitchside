@@ -109,3 +109,13 @@ def test_recaps_may_mention_goal_minutes():
     }
     assert verify("The goal in the 68th minute turned it", facts, {}, live=False)
     assert not verify("A goal in the 77th minute turned it", facts, {}, live=False)
+
+
+def test_only_the_club_in_first_leads_the_table():
+    from pitchside.agents.verify import check_table
+
+    second = {"moment": {"evidence": [{"metric": "live_position", "value": 2, "team": "KSC"}]}}
+    first = {"moment": {"evidence": [{"metric": "live_position", "value": 1, "team": "KSC"}]}}
+    assert check_table("Kingsport City lead the table in second.", second)
+    assert not check_table("Kingsport City lead the table.", first)
+    assert not check_table("Kingsport sit second in the table.", second)
