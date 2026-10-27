@@ -141,7 +141,7 @@ Not perfect: asked "what tools do you have?" it lists its MCP tools (they're pub
 
 ### Testing it harder
 
-Before submitting I went back over every path with tests that script the model's replies, so each check runs against drafts I know are wrong (145 tests, 88% line coverage). That turned up bugs the live runs hadn't:
+Before submitting I went back over every path with tests that script the model's replies, so each check runs against drafts I know are wrong (147 tests, 88% line coverage). That turned up bugs the live runs hadn't:
 
 - The page route served any file on the server to a request with an encoded `../`, including the process environment. Fixed, with a regression test; the logs show no one but me tried it.
 - "Kingsport are ahead" passed in Ask and catch-up whenever Kingsport hadn't scored yet, because the score dictionary had no entry for them. Now both clubs are always passed.
@@ -177,7 +177,7 @@ Everything is synthetic, with made-up clubs and players. The simulator is a poss
 ```bash
 cd backend
 uv sync
-uv run pytest                                   # 145 tests
+uv run pytest                                   # 147 tests
 PITCHSIDE_PROVIDER=templates uv run python -m pitchside.run   # whole match, no model needed
 cp .env.example .env                            # add your Foundry endpoint, deployment and key
 uv run uvicorn pitchside.api:app --port 8000
