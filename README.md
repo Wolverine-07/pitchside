@@ -13,7 +13,7 @@ Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Micr
 
 ## Why I built this
 
-> _Your sentence goes here, in your own words._
+I picked this challenge because one broadcast gets watched by experts, casual fans and people in other languages, and I wanted every one of them to get a version of the story made for them.
 
 ## What it does
 
