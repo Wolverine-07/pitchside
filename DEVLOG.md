@@ -34,3 +34,5 @@ Short notes on decisions and dead ends, newest last.
 - Oct 27: "Why trust this?" on every caption (the Analyst's reasoning, the numbers it used, the path through the agents) and a "How it works" panel with the measured results, including where the team is no better than a single agent.
 - Oct 27: GitHub Actions CI: ruff, pytest in templates mode, frontend build.
 
+- Oct 27, late morning: Testing at real-time speed, nothing came on screen for minutes. The server was fine; the match simply had nothing worth saying until the 5th minute, and gaps of up to five minutes later. A broadcast never goes that quiet, so there is now a kick-off caption at 0' (table positions and points, on screen in about 2 seconds) and, after three quiet match minutes, a state-of-play read of the last five minutes. The longest gap between captions in the demo match is now under six match minutes, and a test keeps it that way.
+- Oct 27: The live test also produced "Kingsport City lead the table in second". The Verifier now only lets a caption say a club leads the table if the facts put a club 1st.
