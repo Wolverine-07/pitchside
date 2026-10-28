@@ -7,7 +7,7 @@ Pitchside watches a synthetic football match event by event, works out which mom
 Built for the Microsoft *Inside the Game* hackathon with Microsoft Foundry, Microsoft Agent Framework, MCP, Azure Container Apps and Azure AI Speech.
 
 - **Live app:** https://pitchside-web.mangostone-cc37c1d4.polandcentral.azurecontainerapps.io (pick a club and a player, choose 3x speed, kick off; the first load can take ~20 s while the container wakes up)
-- **Demo video:** _link coming_
+- **Demo video:** [docs/demo.mp4](docs/demo.mp4) (1:59, with my voiceover)
 
 ![Pitchside broadcast view](docs/screenshot.png)
 
